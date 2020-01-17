@@ -152,3 +152,25 @@ class CpCalculation(BasePwCpInputGenerator, CalcJob):
         spec.exit_code(118, 'ERROR_READING_POS_FILE', message='The required POS file could not be read.')
         spec.exit_code(119, 'ERROR_READING_TRAJECTORY_DATA', message='The required trajectory data could not be read.')
         spec.exit_code(120, 'ERROR_INVALID_OUTPUT', message='The output file contains invalid output.')
+  
+    @staticmethod
+    def _generate_PWCPspecificInputdata(input_params):
+       """Parse CP specific input parameters""" 
+       #AUTOPILOT
+       inputfile = u''
+       try:
+           autopilot = input_params.pop('AUTOPILOT',[]) 
+           autopilotinput = u''
+           if autopilot:
+               autopilotinput += u'\nAUTOPILOT\n'
+               for event in autopilot:
+                   if isinstance(event['newvalue'],str):
+                       autopilotinput += u'ON_STEP = {} : \'{}\' = {}\n'.format(event['onstep'],event['what'],event['newvalue'])
+                   else:
+                       autopilotinput += u'ON_STEP = {} : {} = {}\n'.format(event['onstep'],event['what'],event['newvalue'])
+               autopilotinput += 'ENDRULES\n'
+           inputfile += autopilotinput
+       except:
+           print ('Wrong AUTOPILOT input parameters.')
+           raise
+       return inputfile

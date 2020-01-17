@@ -242,6 +242,11 @@ class BasePwCpInputGenerator(CalcJob):
 
         return calcinfo
 
+    @staticmethod
+    def _generate_PWCPspecificInputdata(*args,**kwargs):
+        """By default, nothing specific is generated. This method can be implemented again in derived classes, and it will be called by _generate_PWCPinputdata"""
+        pass
+
     @classmethod
     def _generate_PWCPinputdata(cls, parameters, settings, pseudos, structure, kpoints=None, use_fractional=False):  # pylint: disable=invalid-name
         """Create the input file in string format for a pw.x or cp.x calculation for the given inputs."""
@@ -254,7 +259,15 @@ class BasePwCpInputGenerator(CalcJob):
         # and the second-level keys as lowercase
         # (deeper levels are unchanged)
         input_params = _uppercase_dict(parameters.get_dict(), dict_name='parameters')
-        input_params = {k: _lowercase_dict(v, dict_name=k) for k, v in six.iteritems(input_params)}
+        # (the second level can be a list, in case of CP autopilot)
+        new_input_params={}
+        for k, v in six.iteritems(input_params):
+            try:
+                new_input_params[k] = _lowercase_dict(v, dict_name=k)
+            except: # if it is not a dictionary
+                new_input_params[k] = v
+        input_params = new_input_params
+#        input_params = {k: _lowercase_dict(v, dict_name=k) for k, v in six.iteritems(input_params)}
 
         # I remove unwanted elements (for the moment, instead, I stop; to change when we setup a reasonable logging)
         for blocked in cls._blocked_keywords:
@@ -573,6 +586,9 @@ class BasePwCpInputGenerator(CalcJob):
         if cls._use_kpoints:
             inputfile += kpoints_card
         inputfile += cell_parameters_card
+
+        #this calls subclass method to parse additional input parameters specific to PW or CP and generate additional cards
+        inputfile += cls._generate_PWCPspecificInputdata(input_params)  
 
         if input_params:
             raise exceptions.InputValidationError(
