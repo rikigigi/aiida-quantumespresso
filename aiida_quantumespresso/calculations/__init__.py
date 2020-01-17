@@ -245,7 +245,7 @@ class BasePwCpInputGenerator(CalcJob):
     @staticmethod
     def _generate_PWCPspecificInputdata(*args,**kwargs):
         """By default, nothing specific is generated. This method can be implemented again in derived classes, and it will be called by _generate_PWCPinputdata"""
-        pass
+        return u''
 
     @classmethod
     def _generate_PWCPinputdata(cls, parameters, settings, pseudos, structure, kpoints=None, use_fractional=False):  # pylint: disable=invalid-name
