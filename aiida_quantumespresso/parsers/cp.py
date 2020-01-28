@@ -12,6 +12,7 @@ from six.moves import zip
 from qe_tools.constants import bohr_to_ang, hartree_to_ev, timeau_to_sec
 from aiida_quantumespresso.parsers.parse_raw.cp import parse_cp_raw_output, parse_cp_traj_stanzas
 
+import os
 
 class CpParser(Parser):
     """This class is the implementation of the Parser class for Cp."""
@@ -49,16 +50,28 @@ class CpParser(Parser):
             self.logger.error('more than one XML file retrieved, which should never happen')
             return self.exit_codes.ERROR_MULTIPLE_XML_FILES
 
-        if self.node.process_class._FILE_XML_PRINT_COUNTER_BASENAME not in list_of_files:
-            self.logger.error('We could not find the print counter file in the output')
+
+        print_counter_xml=True
+        if self.node.process_class._FILE_XML_PRINT_COUNTER_BASENAME not in list_of_files and self.node.process_class._FILE_PRINT_COUNTER_BASENAME not in list_of_files:
+            self.logger.error('We could not find the print counter file in the output (' + self.node.process_class._FILE_PRINT_COUNTER_BASENAME + ' or ' + self.node.process_class._FILE_XML_PRINT_COUNTER_BASENAME + ' not in {} )'.format(list_of_files) )
             # TODO: Add an error for this counter
             return self.exit_codes.ERROR_MISSING_XML_FILE
+
+        if self.node.process_class._FILE_PRINT_COUNTER_BASENAME in list_of_files:
+            self.logger.info('print counter not in xml format')
+            print_counter_xml=False
+            FILE_PRINT_COUNTER_BASENAME = self.node.process_class._FILE_PRINT_COUNTER_BASENAME
+        else: # xml format
+            print_counter_xml=True
+            self.logger.info('print counter in xml format')
+            FILE_PRINT_COUNTER_BASENAME = self.node.process_class._FILE_XML_PRINT_COUNTER_BASENAME
 
         # Let's pass file handlers to this function
         out_dict, _raw_successful = parse_cp_raw_output(
             out_folder.open(stdout_filename),
             out_folder.open(xml_files[0]),
-            out_folder.open(self.node.process_class._FILE_XML_PRINT_COUNTER_BASENAME)
+            out_folder.open(FILE_PRINT_COUNTER_BASENAME),
+            print_counter_xml=print_counter_xml
         )
 
         # parse the trajectory. Units in Angstrom, picoseconds and eV.
@@ -69,20 +82,28 @@ class CpParser(Parser):
             'scf_total_energy', 'enthalpy', 'enthalpy_plus_kinetic',
             'energy_constant_motion', 'volume', 'pressure'
         ]
+ 
+        #TODO: check version of cp
+        new_cp_ordering = True
+        
 
         # Now prepare the reordering, as filex in the xml are  ordered
-        reordering = self._generate_sites_ordering(out_dict['species'],
-                                                   out_dict['atoms'])
+        if new_cp_ordering:
+            reordering = None
+        else:
+            reordering = self._generate_sites_ordering(out_dict['species'],
+                                                       out_dict['atoms'])
 
         pos_filename = '{}.{}'.format(self.node.process_class._PREFIX, 'pos')
         if pos_filename not in list_of_files:
             out_dict['warnings'].append('Unable to open the POS file... skipping.')
             return self.exit_codes.ERROR_READING_POS_FILE
 
+        number_of_atoms = out_dict.get('number_of_atoms',out_dict['structure']['number_of_atoms'])
         trajectories = [
-            ('positions', 'pos', bohr_to_ang, out_dict['number_of_atoms']),
+            ('positions', 'pos', bohr_to_ang, number_of_atoms),
             ('cells', 'cel', bohr_to_ang, 3),
-            ('velocities', 'vel', bohr_to_ang / timeau_to_sec * 10 ** 12, out_dict['number_of_atoms']),
+            ('velocities', 'vel', bohr_to_ang / timeau_to_sec * 10 ** 12, number_of_atoms),
         ]
 
         for name, extension, scale, elements in trajectories:
@@ -289,4 +310,7 @@ class CpParser(Parser):
         return [origlist[e] for e in reordering]
 
     def _get_reordered_array(self, _input, reordering):
-        return numpy.array([self._get_reordered_list(i, reordering) for i in _input])
+        if reordering is not None:  
+            return numpy.array([self._get_reordered_list(i, reordering) for i in _input])
+        else:
+            return numpy.array(_input)

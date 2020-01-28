@@ -106,8 +106,8 @@ def parse_pw_xml_post_6_2(xml, include_deprecated_v2_keys=False):
         logs.error.append('{} XML schema validation error(s) schema: {}:'.format(len(errors), schema_filepath))
         for err in errors:
             logs.error.append(str(err))
-
-    inputs = xml_dictionary['input']
+    print (xml_dictionary)
+    inputs = xml_dictionary.get('input',{})
     outputs = xml_dictionary['output']
 
     lattice_vectors = [
@@ -119,7 +119,7 @@ def parse_pw_xml_post_6_2(xml, include_deprecated_v2_keys=False):
     has_electric_field = inputs.get('electric_field', {}).get('electric_potential', None) == 'sawtooth_potential'
     has_dipole_correction = inputs.get('electric_field', {}).get('dipole_correction', False)
 
-    if 'occupations' in inputs['bands']:
+    if 'occupations' in inputs.get('bands',{}):
         try:
             occupations = inputs['bands']['occupations']['$']  # also present as ['output']['band_structure']['occupations_kind']
         except TypeError:  # "string indices must be integers" -- might have attribute 'nspin'
@@ -205,8 +205,8 @@ def parse_pw_xml_post_6_2(xml, include_deprecated_v2_keys=False):
     elif spin_constraints == 'total direction':
         constraint_mag = 6
 
-    lsda = inputs['spin']['lsda']
-    spin_orbit_calculation = inputs['spin']['spinorbit']
+    lsda = inputs.get('spin',{}).get('lsda',False)
+    spin_orbit_calculation = inputs.get('spin',{}).get('spinorbit',False)
     non_colinear_calculation = outputs['magnetization']['noncolin']
     do_magnetization = outputs['magnetization']['do_magnetization']
 
@@ -229,10 +229,10 @@ def parse_pw_xml_post_6_2(xml, include_deprecated_v2_keys=False):
     inversion_symmetry = False
 
     # See also PW/src/setup.f90
-    nsym = outputs['symmetries']['nsym']  # crystal symmetries
-    nrot = outputs['symmetries']['nrot']  # lattice symmetries
+    nsym = outputs.get('symmetries',{}).get('nsym',None)  # crystal symmetries
+    nrot = outputs.get('symmetries',{}).get('nrot',None)  # lattice symmetries
 
-    for symmetry in outputs['symmetries']['symmetry']:
+    for symmetry in outputs.get('symmetries',{}).get('symmetry',[]):
 
         # There are two types of symmetries, lattice and crystal. The pure inversion (-I) is always a lattice symmetry,
         # so we don't care. But if the pure inversion is also a crystal symmetry, then then the system as a whole
@@ -314,19 +314,19 @@ def parse_pw_xml_post_6_2(xml, include_deprecated_v2_keys=False):
         'time_reversal_flag': time_reversal,
         'symmetries': symmetries,
         'lattice_symmetries': lattice_symmetries,
-        'do_not_use_time_reversal': inputs['symmetry_flags']['noinv'],
+        'do_not_use_time_reversal': inputs.get('symmetry_flags',{}).get('noinv',None),
         'spin_orbit_domag': outputs['magnetization']['do_magnetization'],
         'fft_grid': [value for _, value in sorted(outputs['basis_set']['fft_grid'].items())],
         'lsda': lsda,
         'number_of_spin_components': nspin,
-        'no_time_rev_operations': inputs['symmetry_flags']['no_t_rev'],
+        'no_time_rev_operations': inputs.get('symmetry_flags',{}).get('no_t_rev',None),
         'inversion_symmetry': inversion_symmetry,  # the old tag was INVERSION_SYMMETRY and was set to (from the code): "invsym    if true the system has inversion symmetry"
         'number_of_bravais_symmetries': nrot,  # lattice symmetries
         'number_of_symmetries': nsym,          # crystal symmetries
-        'wfc_cutoff': inputs['basis']['ecutwfc'] * hartree_to_ev,
+        'wfc_cutoff': inputs.get('basis',{}).get('ecutwfc',-1.0) * hartree_to_ev,
         'rho_cutoff': outputs['basis_set']['ecutrho'] * hartree_to_ev,  # not always printed in input->basis
         'smooth_fft_grid': [value for _, value in sorted(outputs['basis_set']['fft_smooth'].items())],
-        'dft_exchange_correlation': inputs['dft']['functional'],  # TODO: also parse optional elements of 'dft' tag
+        'dft_exchange_correlation': inputs.get('dft',{}).get('functional',None),  # TODO: also parse optional elements of 'dft' tag
             # WARNING: this is different between old XML and new XML
         'spin_orbit_calculation': spin_orbit_calculation,
         'q_real_space': outputs['algorithmic_info']['real_space_q'],

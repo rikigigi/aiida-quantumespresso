@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Plugin to create a Quantum Espresso pw.x file.
+"""Plugin to create a Quantum Espresso cp.x file.
 
 TODO: COPY OUTDIR FROM PREVIOUS CALCULATION! Should be an input node of type
      RemoteData (or maybe subclass it?).
@@ -33,10 +33,16 @@ class CpCalculation(BasePwCpInputGenerator, CalcJob):
     _CP_READ_UNIT_NUMBER = 50
     _CP_WRITE_UNIT_NUMBER = 51
     _FILE_XML_PRINT_COUNTER_BASENAME = 'print_counter.xml'
+    _FILE_PRINT_COUNTER_BASENAME = 'print_counter'
     _FILE_XML_PRINT_COUNTER = os.path.join(
         BasePwCpInputGenerator._OUTPUT_SUBFOLDER,
         '{}_{}.save'.format(BasePwCpInputGenerator._PREFIX, _CP_WRITE_UNIT_NUMBER),
         _FILE_XML_PRINT_COUNTER_BASENAME,
+    )
+    _FILE_PRINT_COUNTER = os.path.join(
+        BasePwCpInputGenerator._OUTPUT_SUBFOLDER,
+        '{}_{}.save'.format(BasePwCpInputGenerator._PREFIX, _CP_WRITE_UNIT_NUMBER),
+        _FILE_PRINT_COUNTER_BASENAME,
     )
 
     # Input file "sections" that we are going to write by calculation type
@@ -97,7 +103,7 @@ class CpCalculation(BasePwCpInputGenerator, CalcJob):
             BasePwCpInputGenerator._OUTPUT_SUBFOLDER,
             '{}.{}'.format(BasePwCpInputGenerator._PREFIX, ext),
         ) for ext in _cp_ext_list
-    ] + [_FILE_XML_PRINT_COUNTER]
+    ] + [_FILE_XML_PRINT_COUNTER,  _FILE_PRINT_COUNTER]
 
     # in restarts, it will copy from the parent the following
     _restart_copy_from = os.path.join(

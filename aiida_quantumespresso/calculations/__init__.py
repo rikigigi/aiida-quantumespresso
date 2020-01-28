@@ -224,6 +224,7 @@ class BasePwCpInputGenerator(CalcJob):
         calcinfo.retrieve_list.extend(self.xml_filepaths)
         calcinfo.retrieve_list += settings.pop('ADDITIONAL_RETRIEVE_LIST', [])
         calcinfo.retrieve_list += self._internal_retrieve_list
+        print ('calcinfo.retrieve_list = ', calcinfo.retrieve_list)
 
         # Retrieve the k-point directories with the xml files to the temporary folder
         # to parse the band eigenvalues and occupations but not to have to save the raw files
