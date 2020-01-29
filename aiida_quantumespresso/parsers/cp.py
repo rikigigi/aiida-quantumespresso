@@ -9,7 +9,7 @@ from aiida.orm import Dict, TrajectoryData
 from aiida.parsers import Parser
 from six.moves import zip
 
-from qe_tools.constants import bohr_to_ang, hartree_to_ev, timeau_to_sec
+from qe_tools.constants import bohr_to_ang, hartree_to_ev, timeau_to_sec, ry_to_ev
 from aiida_quantumespresso.parsers.parse_raw.cp import parse_cp_raw_output, parse_cp_traj_stanzas
 
 import os
@@ -103,7 +103,8 @@ class CpParser(Parser):
         trajectories = [
             ('positions', 'pos', bohr_to_ang, number_of_atoms),
             ('cells', 'cel', bohr_to_ang, 3),
-            ('velocities', 'vel', bohr_to_ang / timeau_to_sec * 10 ** 12, number_of_atoms),
+            ('velocities', 'vel', bohr_to_ang / ( timeau_to_sec * 10 ** 12 ), number_of_atoms),
+            ('forces', 'for', ry_to_ev / bohr_to_ang, number_of_atoms),
         ]
 
         for name, extension, scale, elements in trajectories:
@@ -205,6 +206,12 @@ class CpParser(Parser):
             times=raw_trajectory['times'],
             velocities=raw_trajectory['velocities_ordered'],
         )
+
+        # eventually set the forces
+        try:
+            traj.set_array('forces', raw_trajectory['forces_ordered'])
+        except:
+            out_dict['warnings'].append('failed to set forces')
 
         for this_name in evp_keys:
             try:
