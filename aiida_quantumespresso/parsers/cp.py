@@ -9,7 +9,7 @@ from aiida.orm import Dict, TrajectoryData
 from aiida.parsers import Parser
 from six.moves import zip
 
-from qe_tools.constants import bohr_to_ang, hartree_to_ev, timeau_to_sec, ry_to_ev
+from qe_tools.constants import bohr_to_ang, hartree_to_ev, timeau_to_sec, hartree_to_ev
 from aiida_quantumespresso.parsers.parse_raw.cp import parse_cp_raw_output, parse_cp_traj_stanzas
 
 import os
@@ -104,7 +104,7 @@ class CpParser(Parser):
             ('positions', 'pos', bohr_to_ang, number_of_atoms),
             ('cells', 'cel', bohr_to_ang, 3),
             ('velocities', 'vel', bohr_to_ang / ( timeau_to_sec * 10 ** 12 ), number_of_atoms),
-            ('forces', 'for', ry_to_ev / bohr_to_ang, number_of_atoms),
+            ('forces', 'for', hartree_to_ev / bohr_to_ang, number_of_atoms),
         ]
 
         for name, extension, scale, elements in trajectories:
@@ -126,7 +126,7 @@ class CpParser(Parser):
                         reordering
                     )
                 else:
-                    raw_trajectory['cells'] = numpy.array(traj_data['cells_traj_data'])
+                    raw_trajectory['cells'] = numpy.array(traj_data['cells_traj_data']).transpose((0,2,1))
                 if extension == 'pos':
                     raw_trajectory['times'] = numpy.array(traj_data['{}_traj_times'.format(name)])
             except IOError:
