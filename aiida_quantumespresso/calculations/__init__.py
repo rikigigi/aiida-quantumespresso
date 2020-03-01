@@ -13,7 +13,7 @@ from aiida.common.lang import classproperty
 from aiida.engine import CalcJob
 
 from aiida_quantumespresso.utils.convert import convert_input_to_namelist_entry
-
+from qe_tools.constants import bohr_to_ang
 
 class BasePwCpInputGenerator(CalcJob):
     """Base `CalcJob` for implementations for pw.x and cp.x of Quantum ESPRESSO."""
@@ -299,12 +299,26 @@ class BasePwCpInputGenerator(CalcJob):
         input_params['CONTROL']['prefix'] = cls._PREFIX
         input_params['CONTROL']['verbosity'] = input_params['CONTROL'].get('verbosity', cls._default_verbosity)
 
+        # I set the variables that must be specified, related to the system
+        # Set some variables (look out at the case! NAMELISTS should be
+        # uppercase, internal flag names must be lowercase)
+        input_params.setdefault('SYSTEM', {})
+        input_params['SYSTEM'].setdefault('ibrav', 0)
+        input_params['SYSTEM']['nat'] = len(structure.sites)
+        input_params['SYSTEM']['ntyp'] = len(structure.kinds)
+
         # ============ I prepare the input site data =============
         # ------------ CELL_PARAMETERS -----------
         cell_parameters_card = 'CELL_PARAMETERS angstrom\n'
         for vector in structure.cell:
             cell_parameters_card += ('{0:18.10f} {1:18.10f} {2:18.10f}'
                                      '\n'.format(*vector))
+        if input_params['SYSTEM']['ibrav'] == 1: #cubic cell
+            if  structure.cell[0][0]== structure.cell[1][1] and structure.cell[0][0]== structure.cell[2][2] and structure.cell[0][1]==0.0 and structure.cell[0][2]==0.0 and structure.cell[1][0]==0.0 and structure.cell[1][2]==0.0 and structure.cell[2][1]==0.0 and structure.cell[2][0]==0.0:
+                input_params['SYSTEM']['celldm(1)']=structure.cell[0][0]/bohr_to_ang
+            else:
+                raise exceptions.InputValidationError('Specified ibrav=1 but cell is not cubic')
+            #get celldm from cell vectors and set it
 
         # ------------- ATOMIC_SPECIES ------------
         atomic_species_card_list = []
@@ -460,13 +474,6 @@ class BasePwCpInputGenerator(CalcJob):
             atomic_positions_card += ''.join(lines)
             del lines
 
-        # I set the variables that must be specified, related to the system
-        # Set some variables (look out at the case! NAMELISTS should be
-        # uppercase, internal flag names must be lowercase)
-        input_params.setdefault('SYSTEM', {})
-        input_params['SYSTEM']['ibrav'] = 0
-        input_params['SYSTEM']['nat'] = len(structure.sites)
-        input_params['SYSTEM']['ntyp'] = len(structure.kinds)
 
         # ============ I prepare the k-points =============
         if cls._use_kpoints:
@@ -573,6 +580,7 @@ class BasePwCpInputGenerator(CalcJob):
                                            'node'.format(calculation_type))
 
         inputfile = u''
+        ibrav = input_params['SYSTEM']['ibrav']
         for namelist_name in namelists_toprint:
             inputfile += u'&{0}\n'.format(namelist_name)
             # namelist content; set to {} if not present, so that we leave an empty namelist
@@ -586,7 +594,10 @@ class BasePwCpInputGenerator(CalcJob):
         inputfile += atomic_positions_card
         if cls._use_kpoints:
             inputfile += kpoints_card
-        inputfile += cell_parameters_card
+        if ibrav == 0:
+            inputfile += cell_parameters_card
+        elif ibrav != 1:
+            raise exceptions.InputValidationError('ibrav {} not implemented. Use ibrav=0'.format(ibrav))
 
         #this calls subclass method to parse additional input parameters specific to PW or CP and generate additional cards
         inputfile += cls._generate_PWCPspecificInputdata(input_params)  
