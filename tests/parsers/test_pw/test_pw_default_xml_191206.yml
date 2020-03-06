@@ -1,9 +1,15 @@
-output_kpoints:
+output_band:
+  array|bands:
+  - 4
+  - 6
   array|kpoints:
+  - 4
   - 3
-  - 3
+  array|occupations:
+  - 4
+  - 6
   array|weights:
-  - 3
+  - 4
   cell:
   - - 2.715
     - 2.715
@@ -14,48 +20,60 @@ output_kpoints:
   - - 0.0
     - 2.715
     - 2.715
+  label_numbers: []
+  labels: []
   pbc1: true
   pbc2: true
   pbc3: true
+  units: eV
 output_parameters:
   beta_real_space: false
   charge_density: ./charge-density.dat
   constraint_mag: 0
+  convergence_info:
+    scf_conv:
+      convergence_achieved: true
+      n_scf_steps: 25
+      scf_error: 7.287408050090107e-08
   creator_name: pwscf
-  creator_version: '6.1'
+  creator_version: '6.5'
   dft_exchange_correlation: PBE
+  do_magnetization: true
   do_not_use_time_reversal: false
-  energy: -308.19187541409156
-  energy_accuracy: 7.3470735316620004e-06
+  energy: -2143.1162137587985
+  energy_accuracy: 2.0408537587949997e-06
   energy_accuracy_units: eV
-  energy_ewald: -228.56124874864287
+  energy_ewald: -293.45435326949035
   energy_ewald_units: eV
-  energy_hartree: 17.268075769566853
+  energy_hartree: 0.7964846767295108
   energy_hartree_units: eV
-  energy_one_electron: 71.73308779934625
+  energy_one_center_paw: -1886.914354775339
+  energy_one_center_paw_units: eV
+  energy_one_electron: 177.59672772574635
   energy_one_electron_units: eV
-  energy_threshold: 3.84e-06
+  energy_threshold: 2.42e-08
   energy_units: eV
-  energy_xc: -168.63179023436172
+  energy_xc: -141.14071798038765
   energy_xc_units: eV
-  estimated_ram_per_process: 10.86
+  estimated_ram_per_process: 1.83
   estimated_ram_per_process_units: MB
-  estimated_ram_total: 11.35
-  estimated_ram_total_units: GB
-  fermi_energy: 6.5091589497144975
+  estimated_ram_total: 3.66
+  estimated_ram_total_units: MB
+  exit_status: 0
   fermi_energy_units: eV
   fft_grid:
-  - 36
-  - 36
-  - 36
-  format_name: qexml
-  format_version: 1.4.0
+  - 12
+  - 12
+  - 12
+  format_name: QEXSD
+  format_version: 19.03.04
   has_dipole_correction: false
   has_electric_field: false
-  init_wall_time_seconds: 0.9
+  init_wall_time_seconds: 0.8
   inversion_symmetry: true
+  lattice_symmetries: []
   lda_plus_u_calculation: false
-  lkpoint_dir: true
+  lkpoint_dir: false
   lsda: false
   magnetization_angle1:
   - 0.0
@@ -71,29 +89,29 @@ output_parameters:
   - 0
   no_time_rev_operations: false
   non_colinear_calculation: false
-  number_of_atomic_wfc: 8
-  number_of_atoms: 2
-  number_of_bands: 4
+  number_of_atomic_wfc: 16
+  number_of_atoms: 4
+  number_of_bands: 6
   number_of_bravais_symmetries: 48
-  number_of_electrons: 8.0
-  number_of_k_points: 3
+  number_of_electrons: 12.0
+  number_of_k_points: 4
   number_of_species: 1
   number_of_spin_components: 1
   number_of_symmetries: 48
+  occupations: fixed
   parser_info: aiida-quantumespresso parser pw.x v3.0.0a6
   parser_version: 3.0.0a6
   parser_warnings: []
-  pp_check_flag: true
   q_real_space: false
-  rho_cutoff: 3265.366014072
+  rho_cutoff: 272.113834506
   rho_cutoff_units: eV
-  scf_iterations: 5
+  scf_iterations: 25
   smooth_fft_grid:
-  - 25
-  - 25
-  - 25
+  - 12
+  - 12
+  - 12
   spin_orbit_calculation: false
-  spin_orbit_domag: false
+  spin_orbit_domag: true
   starting_magnetization:
   - 0.0
   symmetries:
@@ -195,15 +213,15 @@ output_parameters:
     t_rev: '0'
   symmetries_units: crystal
   time_reversal_flag: true
-  total_number_of_scf_iterations: 5
-  volume: 40.02575174999999
-  wall_time: '         1.86s '
-  wall_time_seconds: 1.86
-  wfc_cutoff: 408.170751759
+  total_number_of_scf_iterations: 25
+  volume: 66.4094599931859
+  wall_time: '      8.52s '
+  wall_time_seconds: 8.52
+  wfc_cutoff: 136.056917253
   wfc_cutoff_units: eV
 output_trajectory:
   array|atomic_species_name:
-  - 2
+  - 4
   array|cells:
   - 1
   - 3
@@ -216,6 +234,8 @@ output_trajectory:
   - 1
   array|energy_hartree:
   - 1
+  array|energy_one_center_paw:
+  - 1
   array|energy_one_electron:
   - 1
   array|energy_threshold:
@@ -227,7 +247,7 @@ output_trajectory:
   - 2
   - 3
   array|scf_accuracy:
-  - 5
+  - 25
   array|scf_iterations:
   - 1
   array|steps:
