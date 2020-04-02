@@ -3,6 +3,7 @@
 """Tests for the `PwParser`."""
 from __future__ import absolute_import
 
+import functools
 import pytest
 
 from aiida import orm
@@ -36,18 +37,22 @@ def generate_inputs_relax(generate_structure):
     `relax`, the parser would not parse that output node and the test would fail. Until we can make the raw output
     parser independent of the input parameters, this will have to remain a separate test inputs generator.
     """
-    structure = generate_structure()
-    parameters = {'CONTROL': {'calculation': 'relax'}}
-    kpoints = orm.KpointsData()
-    kpoints.set_cell_from_structure(structure)
-    kpoints.set_kpoints_mesh_from_density(0.15)
 
-    return AttributeDict({
-        'structure': structure,
-        'kpoints': kpoints,
-        'parameters': orm.Dict(dict=parameters),
-        'settings': orm.Dict()
-    })
+    def _generate_inputs(relax_type='vc-relax'):
+        structure = generate_structure()
+        parameters = {'CONTROL': {'calculation': relax_type}}
+        kpoints = orm.KpointsData()
+        kpoints.set_cell_from_structure(structure)
+        kpoints.set_kpoints_mesh_from_density(0.15)
+
+        return AttributeDict({
+            'structure': structure,
+            'kpoints': kpoints,
+            'parameters': orm.Dict(dict=parameters),
+            'settings': orm.Dict()
+        })
+
+    return _generate_inputs
 
 
 def test_pw_default(
@@ -80,15 +85,45 @@ def test_pw_default(
     })
 
 
-def test_pw_default_xml_new(
+def test_pw_default_xml_190304(
     aiida_profile, fixture_localhost, generate_calc_job_node, generate_parser, generate_inputs_default, data_regression
 ):
-    """Test a `pw.x` calculation in `scf` mode that produced the XML output in the new schema-based format.
+    """Test a `pw.x` calculation in `scf` mode that produced the XML output with schema of 190304.
 
     The output is created by running a dead simple SCF calculation for a silicon structure. This test should test the
     standard parsing of the stdout content and XML file stored in the standard results node.
     """
-    name = 'default_xml_new'
+    name = 'default_xml_190304'
+    entry_point_calc_job = 'quantumespresso.pw'
+    entry_point_parser = 'quantumespresso.pw'
+
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_default)
+    parser = generate_parser(entry_point_parser)
+    results, calcfunction = parser.parse_from_node(node, store_provenance=False)
+
+    assert calcfunction.is_finished, calcfunction.exception
+    assert calcfunction.is_finished_ok, calcfunction.exit_message
+    assert not orm.Log.objects.get_logs_for(node)
+    assert 'output_band' in results
+    assert 'output_parameters' in results
+    assert 'output_trajectory' in results
+
+    data_regression.check({
+        'output_band': results['output_band'].attributes,
+        'output_parameters': results['output_parameters'].get_dict(),
+        'output_trajectory': results['output_trajectory'].attributes,
+    })
+
+
+def test_pw_default_xml_191206(
+    aiida_profile, fixture_localhost, generate_calc_job_node, generate_parser, generate_inputs_default, data_regression
+):
+    """Test a `pw.x` calculation in `scf` mode that produced the XML output with schema of 191206.
+
+    The output is created by running a dead simple SCF calculation for an aluminium structure. This test should test the
+    standard parsing of the stdout content and XML file stored in the standard results node.
+    """
+    name = 'default_xml_191206'
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
@@ -335,7 +370,8 @@ def test_pw_relax_success(
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax)
+    generate_inputs = functools.partial(generate_inputs_relax, relax_type='relax')()
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs)
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
 
@@ -362,7 +398,8 @@ def test_pw_relax_failed_electronic(
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax)
+    generate_inputs = functools.partial(generate_inputs_relax, relax_type='relax')()
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs)
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
     expected_exit_status = node.process_class.exit_codes.ERROR_IONIC_CYCLE_ELECTRONIC_CONVERGENCE_NOT_REACHED.status
@@ -384,7 +421,8 @@ def test_pw_relax_failed_not_converged_nstep(
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax)
+    generate_inputs = functools.partial(generate_inputs_relax, relax_type='relax')()
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs)
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
     expected_exit_status = node.process_class.exit_codes.ERROR_IONIC_CYCLE_EXCEEDED_NSTEP.status
@@ -406,7 +444,7 @@ def test_pw_vcrelax_success(
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax)
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax())
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
 
@@ -425,18 +463,18 @@ def test_pw_vcrelax_success(
     })
 
 
-def test_pw_vcrelax_fractional_success(
+def test_pw_vcrelax_success_fractional(
     aiida_profile, fixture_localhost, generate_calc_job_node, generate_parser, generate_inputs_relax, data_regression
 ):
     """Test a `vc-relax`, that successfully converges and the final scf also converges.
 
     In this case the input atomic positions were defined using 'crystal' (i.e. fractional) units.
     """
-    name = 'vcrelax_fractional_success'
+    name = 'vcrelax_success_fractional'
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax)
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax())
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
 
@@ -463,7 +501,7 @@ def test_pw_vcrelax_failed_charge_wrong(
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax)
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax())
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
     expected_exit_status = node.process_class.exit_codes.ERROR_CHARGE_IS_WRONG.status
@@ -483,7 +521,7 @@ def test_pw_vcrelax_failed_symmetry_not_orthogonal(
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax)
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax())
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
     expected_exit_status = node.process_class.exit_codes.ERROR_SYMMETRY_NON_ORTHOGONAL_OPERATION.status
@@ -503,7 +541,7 @@ def test_pw_vcrelax_failed_bfgs_history(
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax)
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax())
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
     expected_exit_status = node.process_class.exit_codes.ERROR_IONIC_CYCLE_BFGS_HISTORY_FAILURE.status
@@ -511,6 +549,32 @@ def test_pw_vcrelax_failed_bfgs_history(
     assert calcfunction.is_failed
     assert calcfunction.exit_status == expected_exit_status
     assert orm.Log.objects.get_logs_for(node)
+    assert 'output_kpoints' in results
+    assert 'output_parameters' in results
+    assert 'output_structure' in results
+    assert 'output_trajectory' in results
+
+
+def test_pw_vcrelax_failed_bfgs_history_already_converged(
+    aiida_profile, fixture_localhost, generate_calc_job_node, generate_parser, generate_inputs_relax
+):
+    """Test a `vc-relax` that stops due to two consecutive failures of BFGS but is actually converged.
+
+    Quantum ESPRESSO can stop with the BFGS history reset error even when all forces and stresses are already below the
+    thresholds. This happens when the structure is already relaxed at the beginning of the calculation. For some reason
+    QE will still enter the optimization loop and often BFGS will struggle and eventually fail and stop. In this case,
+    the parser should just consider the structure as relaxed and return `0`.
+    """
+    name = 'vcrelax_failed_bfgs_history_already_converged'
+    entry_point_calc_job = 'quantumespresso.pw'
+    entry_point_parser = 'quantumespresso.pw'
+
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax())
+    parser = generate_parser(entry_point_parser)
+    results, calcfunction = parser.parse_from_node(node, store_provenance=False)
+
+    assert calcfunction.is_finished_ok, calcfunction.exit_status
+    assert not orm.Log.objects.get_logs_for(node)
     assert 'output_kpoints' in results
     assert 'output_parameters' in results
     assert 'output_structure' in results
@@ -525,7 +589,7 @@ def test_pw_vcrelax_failed_bfgs_history_final_scf(
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax)
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax())
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
     expected_exit_status = node.process_class.exit_codes.ERROR_IONIC_CYCLE_BFGS_HISTORY_AND_FINAL_SCF_FAILURE.status
@@ -547,7 +611,7 @@ def test_pw_vcrelax_failed_electronic(
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax)
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax())
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
     expected_exit_status = node.process_class.exit_codes.ERROR_IONIC_CYCLE_ELECTRONIC_CONVERGENCE_NOT_REACHED.status
@@ -569,7 +633,7 @@ def test_pw_vcrelax_failed_electronic_final_scf(
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax)
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax())
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
     expected_exit_status = node.process_class.exit_codes.ERROR_IONIC_CONVERGENCE_REACHED_FINAL_SCF_FAILED.status
@@ -591,7 +655,7 @@ def test_pw_vcrelax_failed_not_converged_final_scf(
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax)
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax())
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
     expected_exit_status = node.process_class.exit_codes.ERROR_IONIC_CONVERGENCE_REACHED_EXCEPT_IN_FINAL_SCF.status
@@ -613,7 +677,7 @@ def test_pw_vcrelax_failed_not_converged_nstep(
     entry_point_calc_job = 'quantumespresso.pw'
     entry_point_parser = 'quantumespresso.pw'
 
-    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax)
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs_relax())
     parser = generate_parser(entry_point_parser)
     results, calcfunction = parser.parse_from_node(node, store_provenance=False)
     expected_exit_status = node.process_class.exit_codes.ERROR_IONIC_CYCLE_EXCEEDED_NSTEP.status
