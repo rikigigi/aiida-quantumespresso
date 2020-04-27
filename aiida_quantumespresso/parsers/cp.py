@@ -96,8 +96,7 @@ class CpParser(Parser):
             if pos_filename not in list_of_files:
                 out_dict['warnings'].append('Unable to open the POS file... skipping.')
                 return self.exit_codes.ERROR_READING_POS_FILE
-
-            number_of_atoms = out_dict.get('number_of_atoms',out_dict['structure']['number_of_atoms'])
+            number_of_atoms = out_dict.get('number_of_atoms',out_dict['structure']['number_of_atoms'] if 'structure' in out_dict else None)
             trajectories = [
                 ('positions', 'pos', bohr_to_ang, number_of_atoms),
                 ('cells', 'cel', bohr_to_ang, 3),

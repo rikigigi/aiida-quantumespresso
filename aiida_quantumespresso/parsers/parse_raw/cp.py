@@ -12,6 +12,7 @@ from aiida_quantumespresso.parsers.parse_xml.pw.legacy import (read_xml_card,
                    parse_xml_child_attribute_str,xml_card_cell,xml_card_ions,
                    xml_card_exchangecorrelation,xml_card_spin,xml_card_planewaves)
 from aiida_quantumespresso.parsers.parse_xml.pw.parse import parse_pw_xml_post_6_2
+from aiida_quantumespresso.parsers.parse_xml.pw.versions import get_xml_file_version, get_schema_filepath, get_default_schema_filepath, QeXmlVersion
 from six.moves import range
 
 
@@ -177,8 +178,13 @@ def parse_cp_raw_output(out_file, xml_file=None, xml_counter_file=None,print_cou
 
     # analyze the xml
     if xml_file is not None:
-        xml_data, logs = parse_pw_xml_post_6_2(ElementTree.parse(xml_file))
-        #xml_data = parse_cp_xml_output(xml_file.read())
+        xml_parsed = ElementTree.parse(xml_file)
+        xml_file_version = get_xml_file_version(xml_parsed)
+        if xml_file_version == QeXmlVersion.POST_6_2:
+            xml_data, logs = parse_pw_xml_post_6_2(xml_parsed)
+        elif xml_file_version == QeXmlVersion.PRE_6_2:
+            xml_file.seek(0)
+            xml_data = parse_cp_xml_output(xml_file.read())
     else:
         parser_info['parser_warnings'].append('Skipping the parsing of the xml file.')
         xml_data = {}
