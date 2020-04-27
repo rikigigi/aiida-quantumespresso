@@ -46,7 +46,6 @@ class CpParser(Parser):
         elif len(xml_files) > 1:
             return self.exit(self.exit_codes.ERROR_OUTPUT_XML_MULTIPLE)
 
-<<<<<<< HEAD
 
         print_counter_xml=True
         no_trajectory_output=False
@@ -63,12 +62,6 @@ class CpParser(Parser):
                 print_counter_xml=True
                 self.logger.info('print counter in xml format')
                 FILE_PRINT_COUNTER_BASENAME = self.node.process_class._FILE_XML_PRINT_COUNTER_BASENAME
-======= #tieni solo HEAD, cancella questo sotto
-        if self.node.process_class._FILE_XML_PRINT_COUNTER_BASENAME not in list_of_files:
-            self.logger.error('We could not find the print counter file in the output')
-            # TODO: Add an error for this counter
-            return self.exit(self.exit_codes.ERROR_MISSING_XML_FILE)
->>>>>>> 0113e9797a9d15df999306c483b7d4d95606dd37
 
         # Let's pass file handlers to this function
         out_dict, _raw_successful = parse_cp_raw_output(
