@@ -164,9 +164,9 @@ class CpCalculation(BasePwCpInputGenerator):
             message='The required trajectory data could not be read.')
 
     @staticmethod
-    def _generate_PWCPspecificInputdata(*args,**kwargs):
+    def _generate_PWCPspecificInputdata(*args, **kwargs):
         """Parse CP specific input parameters"""
-        input_params=args[0]
+        input_params = args[0]
         #AUTOPILOT
         inputfile = u''
         try:
