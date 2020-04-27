@@ -11,9 +11,8 @@ from six.moves import zip
 from aiida import orm
 from aiida.common import datastructures, exceptions
 from aiida.common.lang import classproperty
-
-from aiida_quantumespresso.utils.convert import convert_input_to_namelist_entry
 from qe_tools.constants import bohr_to_ang
+from aiida_quantumespresso.utils.convert import convert_input_to_namelist_entry
 from .base import CalcJob
 
 
@@ -246,8 +245,9 @@ class BasePwCpInputGenerator(CalcJob):
         return calcinfo
 
     @staticmethod
-    def _generate_PWCPspecificInputdata(*args,**kwargs):
-        """By default, nothing specific is generated. This method can be implemented again in derived classes, and it will be called by _generate_PWCPinputdata"""
+    def _generate_PWCPspecificInputdata(*args, **kwargs):
+        """By default, nothing specific is generated.
+           This method can be implemented again in derived classes, and it will be called by _generate_PWCPinputdata"""
         return u''
 
     @classmethod
@@ -263,7 +263,7 @@ class BasePwCpInputGenerator(CalcJob):
         # (deeper levels are unchanged)
         input_params = _uppercase_dict(parameters.get_dict(), dict_name='parameters')
         # (the second level can be a list, in case of CP autopilot)
-        new_input_params={}
+        new_input_params = {}
         for k, v in six.iteritems(input_params):
             try:
                 new_input_params[k] = _lowercase_dict(v, dict_name=k)
@@ -316,8 +316,15 @@ class BasePwCpInputGenerator(CalcJob):
             cell_parameters_card += ('{0:18.10f} {1:18.10f} {2:18.10f}'
                                      '\n'.format(*vector))
         if input_params['SYSTEM']['ibrav'] == 1: #cubic cell
-            if  structure.cell[0][0]== structure.cell[1][1] and structure.cell[0][0]== structure.cell[2][2] and structure.cell[0][1]==0.0 and structure.cell[0][2]==0.0 and structure.cell[1][0]==0.0 and structure.cell[1][2]==0.0 and structure.cell[2][1]==0.0 and structure.cell[2][0]==0.0:
-                input_params['SYSTEM']['celldm(1)']=structure.cell[0][0]/bohr_to_ang
+            if (structure.cell[0][0] == structure.cell[1][1]
+               and structure.cell[0][0] == structure.cell[2][2]
+               and structure.cell[0][1] == 0.0
+               and structure.cell[0][2] == 0.0
+               and structure.cell[1][0] == 0.0
+               and structure.cell[1][2] == 0.0
+               and structure.cell[2][1] == 0.0
+               and structure.cell[2][0] == 0.0):
+                input_params['SYSTEM']['celldm(1)'] = structure.cell[0][0]/bohr_to_ang
             else:
                 raise exceptions.InputValidationError('Specified ibrav=1 but cell is not cubic')
             #get celldm from cell vectors and set it

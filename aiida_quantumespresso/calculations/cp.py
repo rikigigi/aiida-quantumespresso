@@ -164,23 +164,26 @@ class CpCalculation(BasePwCpInputGenerator):
             message='The required trajectory data could not be read.')
 
     @staticmethod
-    def _generate_PWCPspecificInputdata(input_params):
+    def _generate_PWCPspecificInputdata(*args,**kwargs):
         """Parse CP specific input parameters"""
+        input_params=args[0]
         #AUTOPILOT
         inputfile = u''
         try:
-            autopilot = input_params.pop('AUTOPILOT',[])
+            autopilot = input_params.pop('AUTOPILOT', [])
             autopilotinput = u''
             if autopilot:
                 autopilotinput += u'\nAUTOPILOT\n'
                 for event in autopilot:
-                    if isinstance(event['newvalue'],str):
-                        autopilotinput += u'ON_STEP = {} : \'{}\' = {}\n'.format(event['onstep'],event['what'],event['newvalue'])
+                    if isinstance(event['newvalue'], str):
+                        autopilotinput += u'ON_STEP = {} : \'{}\' = {}\n'.format(
+                        event['onstep'], event['what'], event['newvalue'])
                     else:
-                        autopilotinput += u'ON_STEP = {} : {} = {}\n'.format(event['onstep'],event['what'],event['newvalue'])
+                        autopilotinput += u'ON_STEP = {} : {} = {}\n'.format(
+                        event['onstep'], event['what'], event['newvalue'])
                 autopilotinput += 'ENDRULES\n'
             inputfile += autopilotinput
         except:
-            print ('Wrong AUTOPILOT input parameters.')
+            print('Wrong AUTOPILOT input parameters.')
             raise
         return inputfile
