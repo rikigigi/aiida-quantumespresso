@@ -10,10 +10,10 @@ from six.moves import zip
 from aiida import orm
 from aiida.common import datastructures, exceptions
 from aiida.common.lang import classproperty
-from aiida.engine import CalcJob
 
 from aiida_quantumespresso.utils.convert import convert_input_to_namelist_entry
 from qe_tools.constants import bohr_to_ang
+from .base import CalcJob
 
 class BasePwCpInputGenerator(CalcJob):
     """Base `CalcJob` for implementations for pw.x and cp.x of Quantum ESPRESSO."""
