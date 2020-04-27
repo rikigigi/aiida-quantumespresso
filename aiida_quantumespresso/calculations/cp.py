@@ -16,6 +16,7 @@ TODO: all a lot of logger.debug stuff
 """
 from __future__ import absolute_import
 
+from __future__ import print_function
 import os
 
 import six
@@ -61,7 +62,7 @@ class CpCalculation(BasePwCpInputGenerator):
         ('CONTROL', 'pseudo_dir'),  # set later
         ('CONTROL', 'outdir'),  # set later
         ('CONTROL', 'prefix'),  # set later
-#        ('SYSTEM', 'ibrav'),  # set later
+        #        ('SYSTEM', 'ibrav'),  # set later
         ('SYSTEM', 'celldm'),
         ('SYSTEM', 'nat'),  # set later
         ('SYSTEM', 'ntyp'),  # set later
@@ -102,7 +103,7 @@ class CpCalculation(BasePwCpInputGenerator):
             BasePwCpInputGenerator._OUTPUT_SUBFOLDER,
             '{}.{}'.format(BasePwCpInputGenerator._PREFIX, ext),
         ) for ext in _cp_ext_list
-    ] + [_FILE_XML_PRINT_COUNTER,  _FILE_PRINT_COUNTER]
+    ] + [_FILE_XML_PRINT_COUNTER, _FILE_PRINT_COUNTER]
 
     # in restarts, it will copy from the parent the following
     _restart_copy_from = os.path.join(
@@ -161,25 +162,25 @@ class CpCalculation(BasePwCpInputGenerator):
             message='The required POS file could not be read.')
         spec.exit_code(340, 'ERROR_READING_TRAJECTORY_DATA',
             message='The required trajectory data could not be read.')
-  
+
     @staticmethod
     def _generate_PWCPspecificInputdata(input_params):
-       """Parse CP specific input parameters""" 
-       #AUTOPILOT
-       inputfile = u''
-       try:
-           autopilot = input_params.pop('AUTOPILOT',[]) 
-           autopilotinput = u''
-           if autopilot:
-               autopilotinput += u'\nAUTOPILOT\n'
-               for event in autopilot:
-                   if isinstance(event['newvalue'],str):
-                       autopilotinput += u'ON_STEP = {} : \'{}\' = {}\n'.format(event['onstep'],event['what'],event['newvalue'])
-                   else:
-                       autopilotinput += u'ON_STEP = {} : {} = {}\n'.format(event['onstep'],event['what'],event['newvalue'])
-               autopilotinput += 'ENDRULES\n'
-           inputfile += autopilotinput
-       except:
-           print ('Wrong AUTOPILOT input parameters.')
-           raise
-       return inputfile
+        """Parse CP specific input parameters"""
+        #AUTOPILOT
+        inputfile = u''
+        try:
+            autopilot = input_params.pop('AUTOPILOT',[])
+            autopilotinput = u''
+            if autopilot:
+                autopilotinput += u'\nAUTOPILOT\n'
+                for event in autopilot:
+                    if isinstance(event['newvalue'],str):
+                        autopilotinput += u'ON_STEP = {} : \'{}\' = {}\n'.format(event['onstep'],event['what'],event['newvalue'])
+                    else:
+                        autopilotinput += u'ON_STEP = {} : {} = {}\n'.format(event['onstep'],event['what'],event['newvalue'])
+                autopilotinput += 'ENDRULES\n'
+            inputfile += autopilotinput
+        except:
+            print ('Wrong AUTOPILOT input parameters.')
+            raise
+        return inputfile

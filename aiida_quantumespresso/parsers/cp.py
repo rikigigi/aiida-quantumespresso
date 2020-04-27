@@ -87,10 +87,10 @@ class CpParser(Parser):
                 'scf_total_energy', 'enthalpy', 'enthalpy_plus_kinetic',
                 'energy_constant_motion', 'volume', 'pressure'
             ]
- 
+
             #TODO: check version of cp
             new_cp_ordering = True
-            
+
 
             # Now prepare the reordering, as filex in the xml are  ordered
             if new_cp_ordering:
@@ -322,7 +322,7 @@ class CpParser(Parser):
         return [origlist[e] for e in reordering]
 
     def _get_reordered_array(self, _input, reordering):
-        if reordering is not None:  
+        if reordering is not None:
             return numpy.array([self._get_reordered_list(i, reordering) for i in _input])
         else:
             return numpy.array(_input)

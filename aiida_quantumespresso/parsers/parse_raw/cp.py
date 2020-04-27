@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import absolute_import
+from __future__ import print_function
 from xml.dom.minidom import parseString
-from xmlschema import XMLSchema         
-from xmlschema.etree import ElementTree 
+from xmlschema import XMLSchema
+from xmlschema.etree import ElementTree
 
 from aiida_quantumespresso.parsers import QEOutputParsingError, get_parser_info
 from aiida_quantumespresso.parsers.parse_xml.pw.legacy import (read_xml_card,
@@ -652,7 +653,7 @@ def parse_cp_xml_output(data):
             except:
                 pass
         except Exception as e:
-            print(e, 'Error parsing CARD {}'.format(cardname))
+            print((e, 'Error parsing CARD {}'.format(cardname)))
             #raise QEOutputParsingError('Error parsing CARD {}'.format(cardname) )
 
     # CARD BAND_STRUCTURE_INFO

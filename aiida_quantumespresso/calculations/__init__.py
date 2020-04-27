@@ -2,6 +2,7 @@
 """Base `CalcJob` for implementations for pw.x and cp.x of Quantum ESPRESSO."""
 from __future__ import absolute_import
 
+from __future__ import print_function
 import abc
 import os
 import six
@@ -14,6 +15,7 @@ from aiida.common.lang import classproperty
 from aiida_quantumespresso.utils.convert import convert_input_to_namelist_entry
 from qe_tools.constants import bohr_to_ang
 from .base import CalcJob
+
 
 class BasePwCpInputGenerator(CalcJob):
     """Base `CalcJob` for implementations for pw.x and cp.x of Quantum ESPRESSO."""
@@ -224,7 +226,7 @@ class BasePwCpInputGenerator(CalcJob):
         calcinfo.retrieve_list.extend(self.xml_filepaths)
         calcinfo.retrieve_list += settings.pop('ADDITIONAL_RETRIEVE_LIST', [])
         calcinfo.retrieve_list += self._internal_retrieve_list
-        print ('calcinfo.retrieve_list = ', calcinfo.retrieve_list)
+        print(('calcinfo.retrieve_list = ', calcinfo.retrieve_list))
 
         # Retrieve the k-point directories with the xml files to the temporary folder
         # to parse the band eigenvalues and occupations but not to have to save the raw files
@@ -268,7 +270,7 @@ class BasePwCpInputGenerator(CalcJob):
             except: # if it is not a dictionary
                 new_input_params[k] = v
         input_params = new_input_params
-#        input_params = {k: _lowercase_dict(v, dict_name=k) for k, v in six.iteritems(input_params)}
+        #        input_params = {k: _lowercase_dict(v, dict_name=k) for k, v in six.iteritems(input_params)}
 
         # I remove unwanted elements (for the moment, instead, I stop; to change when we setup a reasonable logging)
         for blocked in cls._blocked_keywords:
@@ -600,7 +602,7 @@ class BasePwCpInputGenerator(CalcJob):
             raise exceptions.InputValidationError('ibrav {} not implemented. Use ibrav=0'.format(ibrav))
 
         #this calls subclass method to parse additional input parameters specific to PW or CP and generate additional cards
-        inputfile += cls._generate_PWCPspecificInputdata(input_params)  
+        inputfile += cls._generate_PWCPspecificInputdata(input_params)
 
         if input_params:
             raise exceptions.InputValidationError(
