@@ -103,7 +103,7 @@ def parse_pw_xml_post_6_2(xml, include_deprecated_v2_keys=False):
             logs.error.append(str(err))
 
     xml_version = StrictVersion(xml_dictionary['general_info']['xml_format']['@VERSION'])
-    inputs = xml_dictionary['input']
+    inputs = xml_dictionary.get('input',{})
     outputs = xml_dictionary['output']
 
     lattice_vectors = [
