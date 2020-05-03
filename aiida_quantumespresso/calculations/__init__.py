@@ -246,6 +246,7 @@ class BasePwCpInputGenerator(CalcJob):
 
     @staticmethod
     def _generate_PWCPspecificInputdata(*args, **kwargs):
+        # pylint: disable=unused-argument,invalid-name
         """By default, nothing specific is generated.
            This method can be implemented again in derived classes, and it will be called by _generate_PWCPinputdata"""
         return u''
@@ -264,11 +265,11 @@ class BasePwCpInputGenerator(CalcJob):
         input_params = _uppercase_dict(parameters.get_dict(), dict_name='parameters')
         # (the second level can be a list, in case of CP autopilot)
         new_input_params = {}
-        for k, v in six.iteritems(input_params):
+        for k, val in six.iteritems(input_params):
             try:
-                new_input_params[k] = _lowercase_dict(v, dict_name=k)
-            except: # if it is not a dictionary
-                new_input_params[k] = v
+                new_input_params[k] = _lowercase_dict(val, dict_name=k)
+            except TypeError: # if it is not a dictionary
+                new_input_params[k] = val
         input_params = new_input_params
         #        input_params = {k: _lowercase_dict(v, dict_name=k) for k, v in six.iteritems(input_params)}
 
@@ -315,7 +316,8 @@ class BasePwCpInputGenerator(CalcJob):
         for vector in structure.cell:
             cell_parameters_card += ('{0:18.10f} {1:18.10f} {2:18.10f}'
                                      '\n'.format(*vector))
-        if input_params['SYSTEM']['ibrav'] == 1: #cubic cell
+        if input_params['SYSTEM']['ibrav'] == 1:
+            # pylint: disable=too-many-boolean-expressions
             if (structure.cell[0][0] == structure.cell[1][1]
                and structure.cell[0][0] == structure.cell[2][2]
                and structure.cell[0][1] == 0.0
@@ -608,7 +610,8 @@ class BasePwCpInputGenerator(CalcJob):
         elif ibrav != 1:
             raise exceptions.InputValidationError('ibrav {} not implemented. Use ibrav=0'.format(ibrav))
 
-        #this calls subclass method to parse additional input parameters specific to PW or CP and generate additional cards
+        #this calls subclass method to parse additional input parameters
+        #specific to PW or CP and generate additional cards
         inputfile += cls._generate_PWCPspecificInputdata(input_params)
 
         if input_params:
