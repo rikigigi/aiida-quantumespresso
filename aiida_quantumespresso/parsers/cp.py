@@ -81,8 +81,11 @@ class CpParser(Parser):
                 'energy_constant_motion', 'volume', 'pressure'
             ]
 
-            #TODO: check version of cp
-            new_cp_ordering = True
+            #order of atom in the output trajectory changed somewhere after 6.5
+            if LooseVersion(out_dict['creator_version']) > LooseVersion('6.5'):
+                new_cp_ordering = True
+            else:
+                new_cp_ordering = False
 
 
             # Now prepare the reordering, as filex in the xml are  ordered
