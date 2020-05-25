@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 """`Parser` implementation for the `PwCalculation` calculation job class."""
-from __future__ import absolute_import
-
 import traceback
 
 import numpy
@@ -105,10 +103,7 @@ class PwParser(Parser):
         if settings.get('ONLY_INITIALIZATION', False):
             logs_xml.pop('error')
 
-        ignore = [
-            'Error while parsing ethr.',
-            'DEPRECATED: symmetry with ibrav=0, use correct ibrav instead'
-        ]
+        ignore = ['Error while parsing ethr.', 'DEPRECATED: symmetry with ibrav=0, use correct ibrav instead']
         self.emit_logs([logs_stdout, logs_xml], ignore=ignore)
 
         # First check for specific known problems that can cause a pre-mature termination of the calculation
@@ -275,13 +270,8 @@ class PwParser(Parser):
             return parsed_data, logs
 
         try:
-            include_deprecated_keys = parser_options['include_deprecated_v2_keys']
-        except (TypeError, KeyError):
-            include_deprecated_keys = False
-
-        try:
             with self.retrieved.open(xml_files[0]) as xml_file:
-                parsed_data, logs = parse_xml(xml_file, dir_with_bands, include_deprecated_keys)
+                parsed_data, logs = parse_xml(xml_file, dir_with_bands)
         except IOError:
             self.exit_code_xml = self.exit_codes.ERROR_OUTPUT_XML_READ
         except XMLParseError:
@@ -363,8 +353,11 @@ class PwParser(Parser):
         for key in list(parsed_stdout.keys()):
             if key in list(parsed_xml.keys()):
                 if parsed_stdout[key] != parsed_xml[key]:
-                    raise AssertionError('{} found in both dictionaries with different values: {} vs. {}'.format(
-                        key, parsed_stdout[key], parsed_xml[key]))
+                    raise AssertionError(
+                        '{} found in both dictionaries with different values: {} vs. {}'.format(
+                            key, parsed_stdout[key], parsed_xml[key]
+                        )
+                    )
 
         parameters = dict(list(parsed_xml.items()) + list(parsed_stdout.items()) + list(parsed_info.items()))
 

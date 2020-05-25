@@ -1,6 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import print_function
 from xml.dom.minidom import parseString
 from xmlschema import XMLSchema
 from xmlschema.etree import ElementTree
@@ -13,6 +11,7 @@ from aiida_quantumespresso.parsers.parse_xml.pw.legacy import (read_xml_card,
                    xml_card_exchangecorrelation,xml_card_spin,xml_card_planewaves)
 from aiida_quantumespresso.parsers.parse_xml.pw.parse import parse_pw_xml_post_6_2
 from aiida_quantumespresso.parsers.parse_xml.pw.versions import get_xml_file_version, get_schema_filepath, get_default_schema_filepath, QeXmlVersion
+#TODO: check if we have to remove this
 from six.moves import range
 
 
@@ -47,37 +46,37 @@ def parse_cp_traj_stanzas(num_elements, splitlines, prepend_name, rescale=1.):
                 if len(this_stanza) == 0 and not start_stanza:
                     raise ValueError('Wrong position of long line.')
                 start_stanza = False
-                this_stanza.append([float(l[0])*rescale,float(l[1])*rescale,float(l[2])*rescale])
+                this_stanza.append([float(l[0]) * rescale, float(l[1]) * rescale, float(l[2]) * rescale])
                 if len(this_stanza) == num_elements:
                     stanzas.append(this_stanza)
                     this_stanza = []
             else:
                 raise ValueError('Wrong line length ({})'.format(len(l)))
         if len(this_stanza) != 0:
-            raise ValueError('Wrong length of last block ({} lines instead of 0).'
-                             .format(len(this_stanza)))
+            raise ValueError('Wrong length of last block ({} lines instead of 0).'.format(len(this_stanza)))
         if len(steps) != len(stanzas):
             raise ValueError('Length mismatch between number of steps and number of defined stanzas.')
         return {
             '{}_steps'.format(prepend_name): steps,
             '{}_times'.format(prepend_name): times,
             '{}_data'.format(prepend_name): stanzas,
-            }
+        }
     except Exception as e:
         e.message = 'At line {}: {}'.format(linenum + 1, e)
         raise e
 
-def parse_cp_text_output(data,xml_data):
+
+def parse_cp_text_output(data, xml_data):
     """data must be a list of strings, one for each lines, as returned by readlines().
 
     On output, a dictionary with parsed values
     """
     # TODO: uniform readlines() and read() usage for passing input to the parser
 
-    parsed_data={}
-    parsed_data['warnings']=[]
+    parsed_data = {}
+    parsed_data['warnings'] = []
 
-    for count,line in enumerate(data):
+    for count, line in enumerate(data):
 
         if 'warning' in line.lower():
             parsed_data['warnings'].append(line)
@@ -85,8 +84,8 @@ def parse_cp_text_output(data,xml_data):
             parsed_data['warnings'].append('Bananas from the ortho.')
         elif 'CP' in line and 'WALL' in line:
             try:
-                time=line.split('CPU')[1].split('WALL')[0]
-                parsed_data['wall_time']=time
+                time = line.split('CPU')[1].split('WALL')[0]
+                parsed_data['wall_time'] = time
             except:
                 raise QEOutputParsingError('Error while parsing wall time.')
     try:
@@ -94,47 +93,47 @@ def parse_cp_text_output(data,xml_data):
             if 'nfi' in line and 'ekinc' in line and 'econs' in line:
                 this_line = data[len(data)-count]
                 try:
-                    parsed_data['ekinc'] = [float( this_line.split()[1] )]
+                    parsed_data['ekinc'] = [float(this_line.split()[1])]
                 except ValueError:
                     pass
                 try:
-                    parsed_data['temph'] = [float( this_line.split()[2] )]
+                    parsed_data['temph'] = [float(this_line.split()[2])]
                 except ValueError:
                     pass
                 try:
-                    parsed_data['tempp'] = [float( this_line.split()[3] )]
+                    parsed_data['tempp'] = [float(this_line.split()[3])]
                 except ValueError:
                     pass
                 try:
-                    parsed_data['etot'] = [float( this_line.split()[4] )]
+                    parsed_data['etot'] = [float(this_line.split()[4])]
                 except ValueError:
                     pass
                 try:
-                    parsed_data['enthal'] = [float( this_line.split()[5] )]
+                    parsed_data['enthal'] = [float(this_line.split()[5])]
                 except ValueError:
                     pass
                 try:
-                    parsed_data['econs'] = [float( this_line.split()[6] )]
+                    parsed_data['econs'] = [float(this_line.split()[6])]
                 except ValueError:
                     pass
                 try:
-                    parsed_data['econt'] = [float( this_line.split()[7] )]
+                    parsed_data['econt'] = [float(this_line.split()[7])]
                 except ValueError:
                     pass
                 try:
-                    parsed_data['vnhh'] = [float( this_line.split()[8] )]
+                    parsed_data['vnhh'] = [float(this_line.split()[8])]
                 except (ValueError, IndexError):
                     pass
                 try:
-                    parsed_data['xnhh0'] = [float( this_line.split()[9] )]
+                    parsed_data['xnhh0'] = [float(this_line.split()[9])]
                 except (ValueError, IndexError):
                     pass
                 try:
-                    parsed_data['vnhp'] = [float( this_line.split()[10] )]
+                    parsed_data['vnhp'] = [float(this_line.split()[10])]
                 except (ValueError, IndexError):
                     pass
                 try:
-                    parsed_data['xnhp0'] = [float( this_line.split()[11] )]
+                    parsed_data['xnhp0'] = [float(this_line.split()[11])]
                 except (ValueError, IndexError):
                     pass
     except Exception as e:
@@ -147,14 +146,14 @@ def parse_cp_xml_counter_output(data):
     """Parse xml file print_counter.xml data must be a single string, as returned by file.read() (notice the difference
     with parse_text_output!) On output, a dictionary with parsed values."""
     dom = parseString(data)
-    parsed_data={}
-    cardname='LAST_SUCCESSFUL_PRINTOUT'
+    parsed_data = {}
+    cardname = 'LAST_SUCCESSFUL_PRINTOUT'
 
-    card1 = [ _ for _ in dom.childNodes if _.nodeName=='PRINT_COUNTER'][0]
-    card2 = [ _ for _ in card1.childNodes if _.nodeName=='LAST_SUCCESSFUL_PRINTOUT'][0]
+    card1 = [_ for _ in dom.childNodes if _.nodeName == 'PRINT_COUNTER'][0]
+    card2 = [_ for _ in card1.childNodes if _.nodeName == 'LAST_SUCCESSFUL_PRINTOUT'][0]
 
-    tagname='STEP'
-    parsed_data[cardname.lower().replace('-','_')] = parse_xml_child_integer(tagname,card2)
+    tagname = 'STEP'
+    parsed_data[cardname.lower().replace('-', '_')] = parse_xml_child_integer(tagname, card2)
 
     return parsed_data
 
@@ -188,7 +187,6 @@ def parse_cp_raw_output(out_file, xml_file=None, xml_counter_file=None,print_cou
     else:
         parser_info['parser_warnings'].append('Skipping the parsing of the xml file.')
         xml_data = {}
-
 
     # analyze the counter file, which keeps info on the steps
     if xml_counter_file is not None:
@@ -234,11 +232,11 @@ def parse_cp_xml_output(data):
 
     dom = parseString(data)
 
-    parsed_data={}
+    parsed_data = {}
 
     #CARD HEADER
     try:
-        parsed_data = copy.deepcopy(xml_card_header(parsed_data,dom))
+        parsed_data = copy.deepcopy(xml_card_header(parsed_data, dom))
     except Exception as e:
         print(e)
 
@@ -246,14 +244,14 @@ def parse_cp_xml_output(data):
 
     cardname='CONTROL'
     try:
-        target_tags=read_xml_card(dom,cardname)
+        target_tags = read_xml_card(dom, cardname)
     except Exception as e:
         print(e)
 
 
     tagname='PP_CHECK_FLAG'
     try:
-        parsed_data[tagname.lower()]=parse_xml_child_bool(tagname,target_tags)
+        parsed_data[tagname.lower()] = parse_xml_child_bool(tagname, target_tags)
     except Exception as e:
         print(e)
 
@@ -341,14 +339,14 @@ def parse_cp_xml_output(data):
 
     cardname='BRILLOUIN_ZONE'
     try:
-        target_tags=read_xml_card(dom,cardname)
+        target_tags=read_xml_card(dom, cardname)
     except Exception as e:
         print(e)
 
 
     tagname='NUMBER_OF_K-POINTS'
     try:
-        parsed_data[tagname.replace('-','_').lower()]=parse_xml_child_integer(tagname,target_tags)
+        parsed_data[tagname.replace('-','_').lower()] = parse_xml_child_integer(tagname, target_tags)
     except Exception as e:
         print(e)
 
@@ -365,7 +363,7 @@ def parse_cp_xml_output(data):
 
 
     # TODO: check what happens if one does not use the monkhorst pack in the code
-    tagname='MONKHORST_PACK_GRID'
+    tagname = 'MONKHORST_PACK_GRID'
     try:
         try:
             a=target_tags.getElementsByTagName(tagname)[0]
@@ -412,32 +410,32 @@ def parse_cp_xml_output(data):
     # can be optional
 
     try:
-        cardname='PARALLELISM'
-        target_tags=read_xml_card(dom,cardname)
+        cardname = 'PARALLELISM'
+        target_tags = read_xml_card(dom, cardname)
 
-        tagname='GRANULARITY_OF_K-POINTS_DISTRIBUTION'
-        parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
+        tagname = 'GRANULARITY_OF_K-POINTS_DISTRIBUTION'
+        parsed_data[tagname.lower().replace('-', '_')] = parse_xml_child_integer(tagname, target_tags)
 
-        tagname='NUMBER_OF_PROCESSORS'
-        parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
+        tagname = 'NUMBER_OF_PROCESSORS'
+        parsed_data[tagname.lower().replace('-', '_')] = parse_xml_child_integer(tagname, target_tags)
 
-        tagname='NUMBER_OF_PROCESSORS_PER_POOL'
-        parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
+        tagname = 'NUMBER_OF_PROCESSORS_PER_POOL'
+        parsed_data[tagname.lower().replace('-', '_')] = parse_xml_child_integer(tagname, target_tags)
 
-        tagname='NUMBER_OF_PROCESSORS_PER_IMAGE'
-        parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
+        tagname = 'NUMBER_OF_PROCESSORS_PER_IMAGE'
+        parsed_data[tagname.lower().replace('-', '_')] = parse_xml_child_integer(tagname, target_tags)
 
-        tagname='NUMBER_OF_PROCESSORS_PER_TASKGROUP'
-        parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
+        tagname = 'NUMBER_OF_PROCESSORS_PER_TASKGROUP'
+        parsed_data[tagname.lower().replace('-', '_')] = parse_xml_child_integer(tagname, target_tags)
 
-        tagname='NUMBER_OF_PROCESSORS_PER_POT'
-        parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
+        tagname = 'NUMBER_OF_PROCESSORS_PER_POT'
+        parsed_data[tagname.lower().replace('-', '_')] = parse_xml_child_integer(tagname, target_tags)
 
-        tagname='NUMBER_OF_PROCESSORS_PER_BAND_GROUP'
-        parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
+        tagname = 'NUMBER_OF_PROCESSORS_PER_BAND_GROUP'
+        parsed_data[tagname.lower().replace('-', '_')] = parse_xml_child_integer(tagname, target_tags)
 
-        tagname='NUMBER_OF_PROCESSORS_PER_DIAGONALIZATION'
-        parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
+        tagname = 'NUMBER_OF_PROCESSORS_PER_DIAGONALIZATION'
+        parsed_data[tagname.lower().replace('-', '_')] = parse_xml_child_integer(tagname, target_tags)
     except:
         pass
 
@@ -445,20 +443,20 @@ def parse_cp_xml_output(data):
 
     cardname = 'TIMESTEPS'
     try:
-        target_tags = read_xml_card(dom,cardname)
+        target_tags = read_xml_card(dom, cardname)
     except Exception as e:
         print(e)
 
 
-    for tagname in ['STEP0','STEPM']:
+    for tagname in ['STEP0', 'STEPM']:
         try:
             tag = target_tags.getElementsByTagName(tagname)[0]
 
             try:
                 second_tagname = 'ACCUMULATORS'
                 second_tag = tag.getElementsByTagName(second_tagname)[0]
-                data=second_tag.childNodes[0].data.rstrip().split() # list of floats
-                parsed_data[second_tagname.replace('-','_').lower()] = [float(i) for i in data]
+                data = second_tag.childNodes[0].data.rstrip().split()  # list of floats
+                parsed_data[second_tagname.replace('-', '_').lower()] = [float(i) for i in data]
             except:
                 pass
 
@@ -469,41 +467,41 @@ def parse_cp_xml_output(data):
             list_data = third_tag.childNodes[0].data.rstrip().split()
             list_data = [float(i) for i in list_data]
             # convert to matrix
-            val=[]
-            mat=[]
-            for i,data in enumerate(list_data):
+            val = []
+            mat = []
+            for i, data in enumerate(list_data):
                 val.append(data)
-                if (i+1)%3==0:
+                if (i + 1) % 3 == 0:
                     mat.append(val)
-                    val=[]
-            parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = mat
+                    val = []
+            parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()] = mat
             third_tagname = 'svel'
             third_tag = second_tag.getElementsByTagName(third_tagname)[0]
             list_data = third_tag.childNodes[0].data.rstrip().split()
             list_data = [float(i) for i in list_data]
             # convert to matrix
-            val=[]
-            mat=[]
-            for i,data in enumerate(list_data):
+            val = []
+            mat = []
+            for i, data in enumerate(list_data):
                 val.append(data)
-                if (i+1)%3==0:
+                if (i + 1) % 3 == 0:
                     mat.append(val)
-                    val=[]
-            parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = mat
+                    val = []
+            parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()] = mat
             try:
                 third_tagname = 'taui'
                 third_tag = second_tag.getElementsByTagName(third_tagname)[0]
                 list_data = third_tag.childNodes[0].data.rstrip().split()
                 list_data = [float(i) for i in list_data]
                 # convert to matrix
-                val=[]
-                mat=[]
-                for i,data in enumerate(list_data):
+                val = []
+                mat = []
+                for i, data in enumerate(list_data):
                     val.append(data)
-                    if (i+1)%3==0:
+                    if (i + 1) % 3 == 0:
                         mat.append(val)
-                        val=[]
-                parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = mat
+                        val = []
+                parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()] = mat
             except:
                 pass
 
@@ -511,7 +509,8 @@ def parse_cp_xml_output(data):
                 third_tagname = 'cdmi'
                 third_tag = second_tag.getElementsByTagName(third_tagname)[0]
                 list_data = third_tag.childNodes[0].data.rstrip().split()
-                parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = [float(i) for i in list_data]
+                parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()
+                            ] = [float(i) for i in list_data]
             except:
                 pass
 
@@ -521,14 +520,14 @@ def parse_cp_xml_output(data):
                 list_data = third_tag.childNodes[0].data.rstrip().split()
                 list_data = [float(i) for i in list_data]
                 # convert to matrix
-                val=[]
-                mat=[]
-                for i,data in enumerate(list_data):
+                val = []
+                mat = []
+                for i, data in enumerate(list_data):
                     val.append(data)
-                    if (i+1)%3==0:
+                    if (i + 1) % 3 == 0:
                         mat.append(val)
-                        val=[]
-                parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = mat
+                        val = []
+                parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()] = mat
             except:
                 pass
 
@@ -536,24 +535,28 @@ def parse_cp_xml_output(data):
             second_tag = tag.getElementsByTagName(second_tagname)[0]
             third_tagname = 'nhpcl'
             third_tag = second_tag.getElementsByTagName(third_tagname)[0]
-            parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = float(third_tag.childNodes[0].data)
+            parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()
+                        ] = float(third_tag.childNodes[0].data)
             third_tagname = 'nhpdim'
             third_tag = second_tag.getElementsByTagName(third_tagname)[0]
-            parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = float(third_tag.childNodes[0].data)
+            parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()
+                        ] = float(third_tag.childNodes[0].data)
             third_tagname = 'xnhp'
             third_tag = second_tag.getElementsByTagName(third_tagname)[0]
-            parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = float(third_tag.childNodes[0].data)
+            parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()
+                        ] = float(third_tag.childNodes[0].data)
             try:
                 third_tagname = 'vnhp'
                 third_tag = second_tag.getElementsByTagName(third_tagname)[0]
-                parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = float(third_tag.childNodes[0].data)
+                parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()
+                            ] = float(third_tag.childNodes[0].data)
             except:
                 pass
 
             try:
                 second_tagname = 'ekincm'
                 second_tag = tag.getElementsByTagName(second_tagname)[0]
-                parsed_data[second_tagname.replace('-','_').lower()] = float(second_tag.childNodes[0].data)
+                parsed_data[second_tagname.replace('-', '_').lower()] = float(second_tag.childNodes[0].data)
             except:
                 pass
 
@@ -562,13 +565,15 @@ def parse_cp_xml_output(data):
             try:
                 third_tagname = 'xnhe'
                 third_tag = second_tag.getElementsByTagName(third_tagname)[0]
-                parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = float(third_tag.childNodes[0].data)
+                parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()
+                            ] = float(third_tag.childNodes[0].data)
             except:
                 pass
             try:
                 third_tagname = 'vnhe'
                 third_tag = second_tag.getElementsByTagName(third_tagname)[0]
-                parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = float(third_tag.childNodes[0].data)
+                parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()
+                            ] = float(third_tag.childNodes[0].data)
             except:
                 pass
 
@@ -580,14 +585,14 @@ def parse_cp_xml_output(data):
                 list_data = third_tag.childNodes[0].data.rstrip().split()
                 list_data = [float(i) for i in list_data]
                 # convert to matrix
-                val=[]
-                mat=[]
-                for i,data in enumerate(list_data):
+                val = []
+                mat = []
+                for i, data in enumerate(list_data):
                     val.append(data)
-                    if (i+1)%3==0:
+                    if (i + 1) % 3 == 0:
                         mat.append(val)
-                        val=[]
-                parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = mat
+                        val = []
+                parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()] = mat
             except:
                 pass
             try:
@@ -596,14 +601,14 @@ def parse_cp_xml_output(data):
                 list_data = third_tag.childNodes[0].data.rstrip().split()
                 list_data = [float(i) for i in list_data]
                 # convert to matrix
-                val=[]
-                mat=[]
-                for i,data in enumerate(list_data):
+                val = []
+                mat = []
+                for i, data in enumerate(list_data):
                     val.append(data)
-                    if (i+1)%3==0:
+                    if (i + 1) % 3 == 0:
                         mat.append(val)
-                        val=[]
-                parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = mat
+                        val = []
+                parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()] = mat
             except:
                 pass
             try:
@@ -612,14 +617,14 @@ def parse_cp_xml_output(data):
                 list_data = third_tag.childNodes[0].data.rstrip().split()
                 list_data = [float(i) for i in list_data]
                 # convert to matrix
-                val=[]
-                mat=[]
-                for i,data in enumerate(list_data):
+                val = []
+                mat = []
+                for i, data in enumerate(list_data):
                     val.append(data)
-                    if (i+1)%3==0:
+                    if (i + 1) % 3 == 0:
                         mat.append(val)
-                        val=[]
-                parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = mat
+                        val = []
+                parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()] = mat
             except:
                 pass
 
@@ -632,14 +637,14 @@ def parse_cp_xml_output(data):
                 list_data = [float(i) for i in list_data]
 
                 # convert to matrix
-                val=[]
-                mat=[]
-                for i,data in enumerate(list_data):
+                val = []
+                mat = []
+                for i, data in enumerate(list_data):
                     val.append(data)
-                    if (i+1)%3==0:
+                    if (i + 1) % 3 == 0:
                         mat.append(val)
-                        val=[]
-                parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = mat
+                        val = []
+                parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()] = mat
             except:
                 pass
             try:
@@ -648,14 +653,14 @@ def parse_cp_xml_output(data):
                 list_data = third_tag.childNodes[0].data.rstrip().split()
                 list_data = [float(i) for i in list_data]
                 # convert to matrix
-                val=[]
-                mat=[]
-                for i,data in enumerate(list_data):
+                val = []
+                mat = []
+                for i, data in enumerate(list_data):
                     val.append(data)
-                    if (i+1)%3==0:
+                    if (i + 1) % 3 == 0:
                         mat.append(val)
-                        val=[]
-                parsed_data[(second_tagname+'_'+third_tagname).replace('-','_').lower()] = mat
+                        val = []
+                parsed_data[(second_tagname + '_' + third_tagname).replace('-', '_').lower()] = mat
             except:
                 pass
         except Exception as e:

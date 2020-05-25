@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-
 from distutils.version import LooseVersion
 
 import numpy
 from aiida.common import NotExistent
 from aiida.orm import Dict, TrajectoryData
-from six.moves import zip
 
 from qe_tools.constants import bohr_to_ang, hartree_to_ev, timeau_to_sec, hartree_to_ev
 from aiida_quantumespresso.parsers.parse_raw.cp import parse_cp_raw_output, parse_cp_traj_stanzas
@@ -37,10 +34,7 @@ class CpParser(Parser):
             return self.exit(self.exit_codes.ERROR_OUTPUT_STDOUT_READ)
 
         # This should match 1 file
-        xml_files = [
-            xml_file for xml_file in self.node.process_class.xml_filenames
-            if xml_file in list_of_files
-        ]
+        xml_files = [xml_file for xml_file in self.node.process_class.xml_filenames if xml_file in list_of_files]
         if not xml_files:
             return self.exit(self.exit_codes.ERROR_MISSING_XML_FILE)
         elif len(xml_files) > 1:
@@ -276,8 +270,7 @@ class CpParser(Parser):
 
         # Dictionary to associate the species name to the idx
         # Example: {'Ba': 1, 'O': 2, 'Ti': 3}
-        species_dict = {name: idx for idx, name in zip(raw_species['index'],
-                                                       raw_species['type'])}
+        species_dict = {name: idx for idx, name in zip(raw_species['index'], raw_species['type'])}
         # List of the indices of the specie associated to each atom,
         # in the order specified in input
         # Example: (1,3,2,2,2)
@@ -307,8 +300,7 @@ class CpParser(Parser):
         # the first atom Ba in the input is atom 0 in the CP output (the first),
         # the second atom Ti in the input is atom 4 (the fifth) in the CP output,
         # and so on
-        sorted_indexed_reordering = sorted([(_[1], _[0]) for _ in
-                                            enumerate(reordering)])
+        sorted_indexed_reordering = sorted([(_[1], _[0]) for _ in enumerate(reordering)])
         reordering_inverse = [_[1] for _ in sorted_indexed_reordering]
         return reordering_inverse
 

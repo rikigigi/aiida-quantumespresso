@@ -14,12 +14,8 @@ TODO: implement pre_... and post_... hooks to add arbitrary strings before
       for development when new cards are needed
 TODO: all a lot of logger.debug stuff
 """
-from __future__ import absolute_import
-
-from __future__ import print_function
 import os
 
-import six
 from aiida import orm
 from aiida.common.lang import classproperty
 
@@ -119,7 +115,7 @@ class CpCalculation(BasePwCpInputGenerator):
 
     @classproperty
     def xml_filepaths(cls):
-        """Returns a list of relative filepaths of XML files."""
+        """Return a list of relative filepaths of XML files."""
         # pylint: disable=no-self-argument,not-an-iterable
         filepaths = []
 
@@ -135,9 +131,10 @@ class CpCalculation(BasePwCpInputGenerator):
 
     @classmethod
     def define(cls, spec):
+        """Define the process specification."""
         # yapf: disable
-        super(CpCalculation, cls).define(spec)
-        spec.input('metadata.options.parser_name', valid_type=six.string_types, default='quantumespresso.cp')
+        super().define(spec)
+        spec.input('metadata.options.parser_name', valid_type=str, default='quantumespresso.cp')
         spec.output('output_trajectory', valid_type=orm.TrajectoryData)
         spec.output('output_parameters', valid_type=orm.Dict)
         spec.default_output_node = 'output_parameters'
