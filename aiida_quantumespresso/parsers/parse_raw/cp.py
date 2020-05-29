@@ -158,7 +158,7 @@ def parse_cp_xml_counter_output(data):
     return parsed_data
 
 def parse_cp_counter_output(data):
-    """Parse xml file print_counter data must be a single string, as returned by file.read() (notice the difference
+    """Parse file print_counter data must be a single string, as returned by file.read() (notice the difference
     with parse_text_output!) On output, a dictionary with parsed values."""
     parsed_data={}
     cardname='LAST_SUCCESSFUL_PRINTOUT'

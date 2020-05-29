@@ -5,7 +5,7 @@ import numpy
 from aiida.common import NotExistent
 from aiida.orm import Dict, TrajectoryData
 
-from qe_tools.constants import bohr_to_ang, hartree_to_ev, timeau_to_sec, hartree_to_ev
+from qe_tools.constants import bohr_to_ang, hartree_to_ev, timeau_to_sec
 from aiida_quantumespresso.parsers.parse_raw.cp import parse_cp_raw_output, parse_cp_traj_stanzas
 from .base import Parser
 
@@ -40,6 +40,15 @@ class CpParser(Parser):
         elif len(xml_files) > 1:
             return self.exit(self.exit_codes.ERROR_OUTPUT_XML_MULTIPLE)
 
+        # cp.x can produce, depending on the particular version of the code,
+        # a file called 'print_counter.xml' (that has an xml format) or
+        # 'print_counter' that is a simple plain file with some text and
+        # the number of the last timestep written in the trajectory output.
+        # Note that if no trajectory is produced (for example because I did
+        # a single conjugate gradient step to calculate the ground state
+        # and the wavefunctions velocities) no printer_counter* file is
+        # written.
+        # for example a post 6.5 git version uses the non xml file
 
         print_counter_xml=True
         no_trajectory_output=False
@@ -120,6 +129,7 @@ class CpParser(Parser):
                             reordering
                         )
                     else:
+                        # NOTE: the trajectory output has the cell matrix transposed!!
                         raw_trajectory['cells'] = numpy.array(traj_data['cells_traj_data']).transpose((0,2,1))
                     if extension == 'pos':
                         raw_trajectory['times'] = numpy.array(traj_data['{}_traj_times'.format(name)])
@@ -204,7 +214,7 @@ class CpParser(Parser):
             # eventually set the forces
             try:
                 traj.set_array('forces', raw_trajectory['forces_ordered'])
-            except:
+            except KeyError:
                 out_dict['warnings'].append('failed to set forces')
 
             for this_name in evp_keys:

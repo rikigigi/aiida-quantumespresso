@@ -58,7 +58,7 @@ class CpCalculation(BasePwCpInputGenerator):
         ('CONTROL', 'pseudo_dir'),  # set later
         ('CONTROL', 'outdir'),  # set later
         ('CONTROL', 'prefix'),  # set later
-        #        ('SYSTEM', 'ibrav'),  # set later
+        ('SYSTEM', 'ibrav'),  # set later
         ('SYSTEM', 'celldm'),
         ('SYSTEM', 'nat'),  # set later
         ('SYSTEM', 'ntyp'),  # set later
@@ -161,13 +161,14 @@ class CpCalculation(BasePwCpInputGenerator):
             message='The required trajectory data could not be read.')
 
     @staticmethod
-    def _generate_PWCPspecificInputdata(*args, **kwargs):
+    def _generate_PWCP_input_tail(*args, **kwargs):
         """Parse CP specific input parameters"""
-        input_params = args[0]
+        input_params = kwargs['input_param']
+        settings = kwargs['settings']
         #AUTOPILOT
         inputfile = u''
         try:
-            autopilot = input_params.pop('AUTOPILOT', [])
+            autopilot = settings.pop('AUTOPILOT', [])
             autopilotinput = u''
             if autopilot:
                 autopilotinput += u'\nAUTOPILOT\n'
@@ -180,7 +181,14 @@ class CpCalculation(BasePwCpInputGenerator):
                         event['onstep'], event['what'], event['newvalue'])
                 autopilotinput += 'ENDRULES\n'
             inputfile += autopilotinput
-        except:
-            print('Wrong AUTOPILOT input parameters.')
-            raise
+        except KeyError:
+            raise exceptions.InputValidationError(
+                    '''AUTOPILOT input: you must specify a list of dictionaries like the following:
+                     [
+                        \{'onstep' : 10, 'what' : 'dt', 'newvalue' : 5.0 \},
+                        \{'onstep' : 20, 'what' : 'whatever', 'newvalue' : 'pippo'\}
+                     ]
+                     You specified {}
+                     '''.format(autopilot)
+                    )
         return inputfile

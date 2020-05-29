@@ -241,7 +241,7 @@ class BasePwCpInputGenerator(CalcJob):
         return calcinfo
 
     @staticmethod
-    def _generate_PWCPspecificInputdata(*args, **kwargs):
+    def _generate_PWCP_input_tail(*args, **kwargs):
         # pylint: disable=unused-argument,invalid-name
         """By default, nothing specific is generated.
            This method can be implemented again in derived classes, and it will be called by _generate_PWCPinputdata"""
@@ -259,15 +259,7 @@ class BasePwCpInputGenerator(CalcJob):
         # and the second-level keys as lowercase
         # (deeper levels are unchanged)
         input_params = _uppercase_dict(parameters.get_dict(), dict_name='parameters')
-        # (the second level can be a list, in case of CP autopilot)
-        new_input_params = {}
-        for k, val in input_params.items():
-            try:
-                new_input_params[k] = _lowercase_dict(val, dict_name=k)
-            except TypeError: # if it is not a dictionary
-                new_input_params[k] = val
-        input_params = new_input_params
-        #        input_params = {k: _lowercase_dict(v, dict_name=k) for k, v in input_params.items()}
+        input_params = {k: _lowercase_dict(v, dict_name=k) for k, v in input_params.items()}
 
         # I remove unwanted elements (for the moment, instead, I stop; to change when we setup a reasonable logging)
         for blocked in cls._blocked_keywords:
@@ -302,7 +294,7 @@ class BasePwCpInputGenerator(CalcJob):
         # Set some variables (look out at the case! NAMELISTS should be
         # uppercase, internal flag names must be lowercase)
         input_params.setdefault('SYSTEM', {})
-        input_params['SYSTEM'].setdefault('ibrav', 0)
+        input_params['SYSTEM']['ibrav']= 0 
         input_params['SYSTEM']['nat'] = len(structure.sites)
         input_params['SYSTEM']['ntyp'] = len(structure.kinds)
 
@@ -312,20 +304,6 @@ class BasePwCpInputGenerator(CalcJob):
         for vector in structure.cell:
             cell_parameters_card += ('{0:18.10f} {1:18.10f} {2:18.10f}'
                                      '\n'.format(*vector))
-        if input_params['SYSTEM']['ibrav'] == 1:
-            # pylint: disable=too-many-boolean-expressions
-            if (structure.cell[0][0] == structure.cell[1][1]
-               and structure.cell[0][0] == structure.cell[2][2]
-               and structure.cell[0][1] == 0.0
-               and structure.cell[0][2] == 0.0
-               and structure.cell[1][0] == 0.0
-               and structure.cell[1][2] == 0.0
-               and structure.cell[2][1] == 0.0
-               and structure.cell[2][0] == 0.0):
-                input_params['SYSTEM']['celldm(1)'] = structure.cell[0][0]/bohr_to_ang
-            else:
-                raise exceptions.InputValidationError('Specified ibrav=1 but cell is not cubic')
-            #get celldm from cell vectors and set it
 
         # ------------- ATOMIC_SPECIES ------------
         atomic_species_card_list = []
@@ -587,7 +565,6 @@ class BasePwCpInputGenerator(CalcJob):
                                            'node'.format(calculation_type))
 
         inputfile = ''
-        ibrav = input_params['SYSTEM']['ibrav']
         for namelist_name in namelists_toprint:
             inputfile += '&{0}\n'.format(namelist_name)
             # namelist content; set to {} if not present, so that we leave an empty namelist
@@ -601,14 +578,11 @@ class BasePwCpInputGenerator(CalcJob):
         inputfile += atomic_positions_card
         if cls._use_kpoints:
             inputfile += kpoints_card
-        if ibrav == 0:
-            inputfile += cell_parameters_card
-        elif ibrav != 1:
-            raise exceptions.InputValidationError('ibrav {} not implemented. Use ibrav=0'.format(ibrav))
+        inputfile += cell_parameters_card
 
         #this calls subclass method to parse additional input parameters
         #specific to PW or CP and generate additional cards
-        inputfile += cls._generate_PWCPspecificInputdata(input_params)
+        inputfile += cls._generate_PWCP_input_tail(input_params=input_params,settings=settings)
 
         if input_params:
             raise exceptions.InputValidationError(
