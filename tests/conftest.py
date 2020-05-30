@@ -392,3 +392,38 @@ def generate_inputs_pw(fixture_code, generate_structure, generate_kpoints_mesh, 
         return inputs
 
     return _generate_inputs_pw
+
+@pytest.fixture
+def generate_inputs_cp(fixture_code, generate_structure, generate_upf_data):
+    """Generate default inputs for a CpCalculation"""
+    def _generate_inputs_cp(autopilot=False):
+        """Generate default inputs for a CpCalculation"""
+        from aiida.orm import Dict
+        from aiida_quantumespresso.utils.resources import get_default_options
+
+        inputs = {
+            'code': fixture_code('quantumespresso.cp'),
+            'structure': generate_structure(),
+            'parameters': Dict(dict={
+                'CONTROL': {
+                    'calculation': 'cp'
+                },
+                'SYSTEM': {
+                    'ecutrho': 240.0,
+                    'ecutwfc': 30.0
+                }
+            }),
+            'pseudos': {
+                'Si': generate_upf_data('Si')
+            },
+            'metadata': {
+                'options': get_default_options()
+            }
+        }
+        if autopilot:
+            inputs['settings']=Dict(dict={'AUTOPILOT':[ {'onstep':2, 'what':'dt','newvalue':42.0}, {'onstep':3, 'what':'dt','newvalue':42.42} ]})
+
+        return inputs
+
+    return _generate_inputs_cp
+

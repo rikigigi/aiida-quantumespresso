@@ -163,7 +163,7 @@ class CpCalculation(BasePwCpInputGenerator):
     @staticmethod
     def _generate_PWCP_input_tail(*args, **kwargs):
         """Parse CP specific input parameters"""
-        input_params = kwargs['input_param']
+        input_params = kwargs['input_params']
         settings = kwargs['settings']
         #AUTOPILOT
         inputfile = u''
