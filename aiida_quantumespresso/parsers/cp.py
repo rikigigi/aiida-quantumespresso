@@ -95,8 +95,15 @@ class CpParser(Parser):
             if new_cp_ordering:
                 reordering = None
             else:
-                reordering = self._generate_sites_ordering(out_dict['species'],
-                                                           out_dict['atoms'])
+                try:
+                    #this works for old xml only
+                    reordering = self._generate_sites_ordering(out_dict['species'],
+                                                               out_dict['atoms'])
+                except KeyError:
+                    #this works for newer versions
+                    reordering = self._generate_sites_ordering(out_dict['structure']['species'],
+                                                               out_dict['structure']['atoms'])
+
 
             pos_filename = '{}.{}'.format(self.node.process_class._PREFIX, 'pos')
             if pos_filename not in list_of_files:
