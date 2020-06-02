@@ -437,3 +437,17 @@ def generate_inputs_cp(fixture_code, generate_structure, generate_upf_data):
 
     return _generate_inputs_cp
 
+
+@pytest.fixture
+def call_something():
+    def _do_stuff(ClassType, what, data, func=call_something,**kwargs):
+        """Recursive call to a member function of a particular type on a iterable structure of dict and list"""
+        if isinstance(data,ClassType):
+            return getattr(data,what)(**kwargs)
+        elif isinstance(data, list):
+            return [ func(ClassType, what, _, func=func, **kwargs) for _ in data ]
+        elif isinstance(data, dict):
+            return {key : func(ClassType, what, data[key], func=func, **kwargs ) for key in data}
+        else:
+            return data
+    return _do_stuff
