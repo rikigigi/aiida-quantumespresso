@@ -136,8 +136,9 @@ def parse_cp_text_output(data, xml_data):
                     parsed_data['xnhp0'] = [float(this_line.split()[11])]
                 except (ValueError, IndexError):
                     pass
-    except Exception as e:
-        print(e)
+    except IndexError:
+        #when the cp does a cg, the output is different and the parser above does not work
+        pass
 
     return parsed_data
 
@@ -235,101 +236,61 @@ def parse_cp_xml_output(data):
     parsed_data = {}
 
     #CARD HEADER
-    try:
-        parsed_data = copy.deepcopy(xml_card_header(parsed_data, dom))
-    except Exception as e:
-        print(e)
+    parsed_data = copy.deepcopy(xml_card_header(parsed_data, dom))
 
     # CARD CONTROL
 
     cardname='CONTROL'
-    try:
-        target_tags = read_xml_card(dom, cardname)
-    except Exception as e:
-        print(e)
+    target_tags = read_xml_card(dom, cardname)
 
 
     tagname='PP_CHECK_FLAG'
-    try:
-        parsed_data[tagname.lower()] = parse_xml_child_bool(tagname, target_tags)
-    except Exception as e:
-        print(e)
+    parsed_data[tagname.lower()] = parse_xml_child_bool(tagname, target_tags)
 
 
     # CARD STATUS
 
     cardname = 'STATUS'
-    try:
-        target_tags = read_xml_card(dom,cardname)
-    except Exception as e:
-        print(e)
+    target_tags = read_xml_card(dom,cardname)
 
 
     tagname = 'STEP'
     attrname = 'ITERATION'
-    try:
-        parsed_data[(tagname+'_'+attrname).lower()]=int(parse_xml_child_attribute_str(tagname,attrname,target_tags))
-    except Exception as e:
-        print(e)
+    parsed_data[(tagname+'_'+attrname).lower()]=int(parse_xml_child_attribute_str(tagname,attrname,target_tags))
 
 
     tagname = 'TIME'
     attrname = 'UNITS'
-    try:
-        value=parse_xml_child_float(tagname,target_tags)
-    except Exception as e:
-        print(e)
+    value=parse_xml_child_float(tagname,target_tags)
 
-    try:
-        units = parse_xml_child_attribute_str(tagname,attrname,target_tags)
-        if units not in ['pico-seconds']:
-            raise QEOutputParsingError('Units {} are not supported by parser'.format(units))
-        parsed_data[tagname.lower()]=value
-    except Exception as e:
-        print(e)
-
+    units = parse_xml_child_attribute_str(tagname,attrname,target_tags)
+    if units not in ['pico-seconds']:
+        raise QEOutputParsingError('Units {} are not supported by parser'.format(units))
+    parsed_data[tagname.lower()]=value
 
     tagname = 'TITLE'
-    try:
-        parsed_data[tagname.lower()]=parse_xml_child_str(tagname,target_tags)
-    except Exception as e:
-        print(e)
+    parsed_data[tagname.lower()]=parse_xml_child_str(tagname,target_tags)
 
 
     # CARD CELL
-    try:
-        parsed_data,lattice_vectors,volume = copy.deepcopy(xml_card_cell(parsed_data,dom))
-    except Exception as e:
-        print(e)
+    parsed_data,lattice_vectors,volume = copy.deepcopy(xml_card_cell(parsed_data,dom))
 
 
     # CARD IONS
-    try:
-        parsed_data = copy.deepcopy(xml_card_ions(parsed_data,dom,lattice_vectors,volume))
-    except Exception as e:
-        print(e)
+    parsed_data = copy.deepcopy(xml_card_ions(parsed_data,dom,lattice_vectors,volume))
 
 
     # CARD PLANE WAVES
 
-    try:
-        parsed_data = copy.deepcopy(xml_card_planewaves(parsed_data,dom,'cp'))
-    except Exception as e:
-        print(e)
+    parsed_data = copy.deepcopy(xml_card_planewaves(parsed_data,dom,'cp'))
 
 
     # CARD SPIN
-    try:
-        parsed_data = copy.deepcopy(xml_card_spin(parsed_data,dom))
-    except Exception as e:
-        print(e)
+    parsed_data = copy.deepcopy(xml_card_spin(parsed_data,dom))
 
 
     # CARD EXCHANGE_CORRELATION
-    try:
-        parsed_data = copy.deepcopy(xml_card_exchangecorrelation(parsed_data,dom))
-    except Exception as e:
-        print(e)
+    parsed_data = copy.deepcopy(xml_card_exchangecorrelation(parsed_data,dom))
 
 
     # TODO CARD OCCUPATIONS
@@ -338,73 +299,61 @@ def parse_cp_xml_output(data):
     # TODO: k points are saved for CP... Why?
 
     cardname='BRILLOUIN_ZONE'
-    try:
-        target_tags=read_xml_card(dom, cardname)
-    except Exception as e:
-        print(e)
+    target_tags=read_xml_card(dom, cardname)
 
 
     tagname='NUMBER_OF_K-POINTS'
-    try:
-        parsed_data[tagname.replace('-','_').lower()] = parse_xml_child_integer(tagname, target_tags)
-    except Exception as e:
-        print(e)
+    parsed_data[tagname.replace('-','_').lower()] = parse_xml_child_integer(tagname, target_tags)
 
 
     tagname='UNITS_FOR_K-POINTS'
     attrname='UNITS'
-    try:
-        metric=parse_xml_child_attribute_str(tagname,attrname,target_tags)
-        if metric not in ['2 pi / a']:
-            raise QEOutputParsingError('Error parsing attribute %s, tag %s inside %s, units unknown'% (attrname,tagname, target_tags.tagName ) )
-        parsed_data[tagname.replace('-','_').lower()]=metric
-    except Exception as e:
-        print(e)
+    metric=parse_xml_child_attribute_str(tagname,attrname,target_tags)
+    if metric not in ['2 pi / a']:
+        raise QEOutputParsingError('Error parsing attribute %s, tag %s inside %s, units unknown'% (attrname,tagname, target_tags.tagName ) )
+    parsed_data[tagname.replace('-','_').lower()]=metric
 
 
     # TODO: check what happens if one does not use the monkhorst pack in the code
     tagname = 'MONKHORST_PACK_GRID'
     try:
-        try:
+        a=target_tags.getElementsByTagName(tagname)[0]
+        value=[int(a.getAttribute('nk'+str(i+1))) for i in range(3)]
+        parsed_data[tagname.replace('-','_').lower()]=value
+    except:
+        raise QEOutputParsingError('Error parsing tag %s inside %s.'% (tagname, target_tags.tagName ) )
+
+    tagname='MONKHORST_PACK_OFFSET'
+    try:
+        a=target_tags.getElementsByTagName(tagname)[0]
+        value=[int(a.getAttribute('k'+str(i+1))) for i in range(3)]
+        parsed_data[tagname.replace('-','_').lower()]=value
+    except:
+        raise QEOutputParsingError('Error parsing tag %s inside %s.'% (tagname, target_tags.tagName ) )
+
+    try:
+        kpoints=[]
+        for i in range(parsed_data['number_of_k_points']):
+            tagname='K-POINT.'+str(i+1)
             a=target_tags.getElementsByTagName(tagname)[0]
-            value=[int(a.getAttribute('nk'+str(i+1))) for i in range(3)]
-            parsed_data[tagname.replace('-','_').lower()]=value
-        except:
-            raise QEOutputParsingError('Error parsing tag %s inside %s.'% (tagname, target_tags.tagName ) )
+            b=a.getAttribute('XYZ').replace('\n','').rsplit()
+            value=[ float(s) for s in b ]
 
-        tagname='MONKHORST_PACK_OFFSET'
-        try:
-            a=target_tags.getElementsByTagName(tagname)[0]
-            value=[int(a.getAttribute('k'+str(i+1))) for i in range(3)]
-            parsed_data[tagname.replace('-','_').lower()]=value
-        except:
-            raise QEOutputParsingError('Error parsing tag %s inside %s.'% (tagname, target_tags.tagName ) )
+            metric=parsed_data['units_for_k_points']
+            if metric=='2 pi / a':
+                value=[ float(s)/parsed_data['lattice_parameter'] for s in value ]
 
-        try:
-            kpoints=[]
-            for i in range(parsed_data['number_of_k_points']):
-                tagname='K-POINT.'+str(i+1)
-                a=target_tags.getElementsByTagName(tagname)[0]
-                b=a.getAttribute('XYZ').replace('\n','').rsplit()
-                value=[ float(s) for s in b ]
+                weight=float(a.getAttribute('WEIGHT'))
 
-                metric=parsed_data['units_for_k_points']
-                if metric=='2 pi / a':
-                    value=[ float(s)/parsed_data['lattice_parameter'] for s in value ]
+                kpoints.append([value,weight])
 
-                    weight=float(a.getAttribute('WEIGHT'))
+        parsed_data['k_point']=kpoints
+    except:
+        raise QEOutputParsingError('Error parsing tag K-POINT.# inside %s.'% (target_tags.tagName ) )
 
-                    kpoints.append([value,weight])
-
-            parsed_data['k_point']=kpoints
-        except:
-            raise QEOutputParsingError('Error parsing tag K-POINT.# inside %s.'% (target_tags.tagName ) )
-
-        tagname='NORM-OF-Q'
-        # TODO decide if save this parameter
-        parsed_data[tagname.replace('-','_').lower()]=parse_xml_child_float(tagname,target_tags)
-    except Exception as e:
-        print(e)
+    tagname='NORM-OF-Q'
+    # TODO decide if save this parameter
+    parsed_data[tagname.replace('-','_').lower()]=parse_xml_child_float(tagname,target_tags)
 
     # CARD PARALLELISM
     # can be optional
@@ -436,16 +385,13 @@ def parse_cp_xml_output(data):
 
         tagname = 'NUMBER_OF_PROCESSORS_PER_DIAGONALIZATION'
         parsed_data[tagname.lower().replace('-', '_')] = parse_xml_child_integer(tagname, target_tags)
-    except:
+    except QEOutputParsingError:
         pass
 
     # CARD TIMESTEPS
 
     cardname = 'TIMESTEPS'
-    try:
-        target_tags = read_xml_card(dom, cardname)
-    except Exception as e:
-        print(e)
+    target_tags = read_xml_card(dom, cardname)
 
 
     for tagname in ['STEP0', 'STEPM']:
@@ -664,44 +610,28 @@ def parse_cp_xml_output(data):
             except:
                 pass
         except Exception as e:
-            print((e, 'Error parsing CARD {}'.format(cardname)))
-            #raise QEOutputParsingError('Error parsing CARD {}'.format(cardname) )
+            raise QEOutputParsingError('Error parsing CARD {}'.format(cardname) )
 
     # CARD BAND_STRUCTURE_INFO
 
     cardname='BAND_STRUCTURE_INFO'
-    try:
-        target_tags=read_xml_card(dom,cardname)
-    except Exception as e:
-        print(e)
+    target_tags=read_xml_card(dom,cardname)
 
 
     tagname='NUMBER_OF_ATOMIC_WFC'
-    try:
-        parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
-    except Exception as e:
-        print(e)
+    parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
 
 
     tagname='NUMBER_OF_ELECTRONS'
-    try:
-        parsed_data[tagname.lower().replace('-','_')] = int(parse_xml_child_float(tagname,target_tags))
-    except Exception as e:
-        print(e)
+    parsed_data[tagname.lower().replace('-','_')] = int(parse_xml_child_float(tagname,target_tags))
 
 
     tagname='NUMBER_OF_BANDS'
-    try:
-        parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
-    except Exception as e:
-        print(e)
+    parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
 
 
     tagname='NUMBER_OF_SPIN_COMPONENTS'
-    try:
-        parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
-    except Exception as e:
-        print(e)
+    parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
 
 
     # TODO
