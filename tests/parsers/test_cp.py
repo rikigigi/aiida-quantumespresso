@@ -39,9 +39,11 @@ def test_cp_default(
 
     assert calcfunction.is_finished, calcfunction.exception
     assert calcfunction.is_finished_ok, calcfunction.exit_message
-    assert not orm.Log.objects.get_logs_for(node)
+    if version != '6.5_cgstep':
+        #in a single cg step we don't have the trajectory output and a message is produced in the log
+        assert not orm.Log.objects.get_logs_for(node)
     assert 'output_parameters' in results
-    if version is not 'cgstep':
+    if version != '6.5_cgstep':
         assert 'output_trajectory' in results
         if version == '6.5_autopilot':
             pass
@@ -52,6 +54,6 @@ def test_cp_default(
         })
     else:
         data_regression.check({
-            'parameters': results['output_parameters'].get_dict(),
+            'parameters': call_something(numpy.ndarray, 'tolist', results['output_parameters'].get_dict(), func=call_something),
         })
 
