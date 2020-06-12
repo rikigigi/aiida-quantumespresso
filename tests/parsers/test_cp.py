@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=redefined-outer-name
 """Tests for the `CpParser`."""
+#import pdb
 import pytest
 
 from aiida import orm
@@ -8,25 +9,25 @@ from aiida.common import AttributeDict
 
 import numpy
 
-import pdb
 
-
-
-#TODO: update the output when the version after 6.5 is out! Now I used a post-6.5 git version (order of atom in the output changed)
-@pytest.mark.parametrize('version',['default','6.5_autopilot','6.5','6.5_cgstep','6.5_cgsteps'])
+#Now I use a post-6.5 git version (order of atom in the output changed)
+@pytest.mark.parametrize('version', ['default', '6.5_autopilot', '6.5', '6.5_cgstep', '6.5_cgsteps'])
 def test_cp_default(
-    aiida_profile, fixture_localhost, generate_calc_job_node, generate_parser, data_regression, generate_structure, version, call_something
+    aiida_profile, fixture_localhost, generate_calc_job_node, generate_parser, data_regression, generate_structure,
+    version, call_something
 ):
     """Test a default `cp.x` calculation."""
     entry_point_calc_job = 'quantumespresso.cp'
     entry_point_parser = 'quantumespresso.cp'
-    if version=='default':
+    if version == 'default':
+
         def generate_inputs():
             return AttributeDict({
                 'structure': generate_structure(structure_id='silicon'),
                 'parameters': orm.Dict(dict={}),
             })
     else:
+
         def generate_inputs():
             return AttributeDict({
                 'structure': generate_structure(structure_id='water'),
@@ -49,11 +50,13 @@ def test_cp_default(
             pass
             #pdb.set_trace()
         data_regression.check({
-            'parameters': call_something(numpy.ndarray, 'tolist', results['output_parameters'].get_dict(), func=call_something),
-            'trajectory': results['output_trajectory'].attributes
+            'parameters':
+            call_something(numpy.ndarray, 'tolist', results['output_parameters'].get_dict(), func=call_something),
+            'trajectory':
+            results['output_trajectory'].attributes
         })
     else:
         data_regression.check({
-            'parameters': call_something(numpy.ndarray, 'tolist', results['output_parameters'].get_dict(), func=call_something),
+            'parameters':
+            call_something(numpy.ndarray, 'tolist', results['output_parameters'].get_dict(), func=call_something),
         })
-

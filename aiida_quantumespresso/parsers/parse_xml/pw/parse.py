@@ -101,7 +101,7 @@ def parse_pw_xml_post_6_2(xml):
             logs.error.append(str(err))
 
     xml_version = StrictVersion(xml_dictionary['general_info']['xml_format']['@VERSION'])
-    inputs = xml_dictionary.get('input',{})
+    inputs = xml_dictionary.get('input', {})
     outputs = xml_dictionary['output']
 
     lattice_vectors = [
@@ -113,7 +113,7 @@ def parse_pw_xml_post_6_2(xml):
     has_electric_field = inputs.get('electric_field', {}).get('electric_potential', None) == 'sawtooth_potential'
     has_dipole_correction = inputs.get('electric_field', {}).get('dipole_correction', False)
 
-    if 'occupations' in inputs.get('bands',{}):
+    if 'occupations' in inputs.get('bands', {}):
         try:
             occupations = inputs['bands']['occupations'][
                 '$']  # also present as ['output']['band_structure']['occupations_kind']
@@ -142,8 +142,8 @@ def parse_pw_xml_post_6_2(xml):
     elif spin_constraints == 'total direction':
         constraint_mag = 6
 
-    lsda = inputs.get('spin',{}).get('lsda',False)
-    spin_orbit_calculation = inputs.get('spin',{}).get('spinorbit',False)
+    lsda = inputs.get('spin', {}).get('lsda', False)
+    spin_orbit_calculation = inputs.get('spin', {}).get('spinorbit', False)
     non_colinear_calculation = outputs['magnetization']['noncolin']
     do_magnetization = outputs['magnetization']['do_magnetization']
 
@@ -166,10 +166,10 @@ def parse_pw_xml_post_6_2(xml):
     inversion_symmetry = False
 
     # See also PW/src/setup.f90
-    nsym = outputs.get('symmetries',{}).get('nsym',None)  # crystal symmetries
-    nrot = outputs.get('symmetries',{}).get('nrot',None)  # lattice symmetries
+    nsym = outputs.get('symmetries', {}).get('nsym', None)  # crystal symmetries
+    nrot = outputs.get('symmetries', {}).get('nrot', None)  # lattice symmetries
 
-    for symmetry in outputs.get('symmetries',{}).get('symmetry',[]):
+    for symmetry in outputs.get('symmetries', {}).get('symmetry', []):
 
         # There are two types of symmetries, lattice and crystal. The pure inversion (-I) is always a lattice symmetry,
         # so we don't care. But if the pure inversion is also a crystal symmetry, then then the system as a whole
@@ -251,20 +251,22 @@ def parse_pw_xml_post_6_2(xml):
         'time_reversal_flag': time_reversal,
         'symmetries': symmetries,
         'lattice_symmetries': lattice_symmetries,
-        'do_not_use_time_reversal': inputs.get('symmetry_flags',{}).get('noinv',None),
+        'do_not_use_time_reversal': inputs.get('symmetry_flags', {}).get('noinv', None),
         'spin_orbit_domag': outputs['magnetization']['do_magnetization'],
         'fft_grid': [value for _, value in sorted(outputs['basis_set']['fft_grid'].items())],
         'lsda': lsda,
         'number_of_spin_components': nspin,
-        'no_time_rev_operations': inputs.get('symmetry_flags',{}).get('no_t_rev',None),
-        'inversion_symmetry': inversion_symmetry,  # the old tag was INVERSION_SYMMETRY and was set to (from the code): "invsym    if true the system has inversion symmetry"
+        'no_time_rev_operations': inputs.get('symmetry_flags', {}).get('no_t_rev', None),
+        'inversion_symmetry':
+        inversion_symmetry,  # the old tag was INVERSION_SYMMETRY and was set to (from the code): "invsym    if true the system has inversion symmetry"
         'number_of_bravais_symmetries': nrot,  # lattice symmetries
-        'number_of_symmetries': nsym,          # crystal symmetries
-        'wfc_cutoff': inputs.get('basis',{}).get('ecutwfc',-1.0) * hartree_to_ev,
+        'number_of_symmetries': nsym,  # crystal symmetries
+        'wfc_cutoff': inputs.get('basis', {}).get('ecutwfc', -1.0) * hartree_to_ev,
         'rho_cutoff': outputs['basis_set']['ecutrho'] * hartree_to_ev,  # not always printed in input->basis
         'smooth_fft_grid': [value for _, value in sorted(outputs['basis_set']['fft_smooth'].items())],
-        'dft_exchange_correlation': inputs.get('dft',{}).get('functional',None),  # TODO: also parse optional elements of 'dft' tag
-            # WARNING: this is different between old XML and new XML
+        'dft_exchange_correlation': inputs.get('dft', {}).get('functional',
+                                                              None),  # TODO: also parse optional elements of 'dft' tag
+        # WARNING: this is different between old XML and new XML
         'spin_orbit_calculation': spin_orbit_calculation,
         'q_real_space': outputs['algorithmic_info']['real_space_q'],
     }

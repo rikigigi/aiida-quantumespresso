@@ -193,23 +193,20 @@ def generate_structure():
     """Return a `StructureData` representing bulk silicon."""
 
     def _generate_structure(structure_id='silicon'):
-        """Return a `StructureData` representing bulk silicon or a snapshot of a single water molecule dynamics"""
+        """Return a `StructureData` representing bulk silicon or a snapshot of a single water molecule dynamics."""
         from aiida.orm import StructureData
 
-        if structure_id=='silicon':
+        if structure_id == 'silicon':
             param = 5.43
             cell = [[param / 2., param / 2., 0], [param / 2., 0, param / 2.], [0, param / 2., param / 2.]]
             structure = StructureData(cell=cell)
             structure.append_atom(position=(0., 0., 0.), symbols='Si', name='Si')
             structure.append_atom(position=(param / 4., param / 4., param / 4.), symbols='Si', name='Si')
-        elif structure_id=='water':
-            structure = StructureData(cell=[[5.29177209, 0.        , 0.        ],
-                                           [0.        , 5.29177209, 0.        ],
-                                           [0.        , 0.        , 5.29177209]]
-                                     )
-            structure.append_atom(position=[ 12.73464656,  16.7741411 ,  24.35076238], symbols='H', name='H')
-            structure.append_atom(position=[-29.3865565 ,   9.51707929,  -4.02515904], symbols='H', name='H')
-            structure.append_atom(position=[  1.04074437,  -1.64320127,  -1.27035021], symbols='O', name='O')
+        elif structure_id == 'water':
+            structure = StructureData(cell=[[5.29177209, 0., 0.], [0., 5.29177209, 0.], [0., 0., 5.29177209]])
+            structure.append_atom(position=[12.73464656, 16.7741411, 24.35076238], symbols='H', name='H')
+            structure.append_atom(position=[-29.3865565, 9.51707929, -4.02515904], symbols='H', name='H')
+            structure.append_atom(position=[1.04074437, -1.64320127, -1.27035021], symbols='O', name='O')
         else:
             raise KeyError('Unknown structure_id=\'{}\''.format(structure_id))
         return structure
@@ -403,11 +400,13 @@ def generate_inputs_pw(fixture_code, generate_structure, generate_kpoints_mesh, 
 
     return _generate_inputs_pw
 
+
 @pytest.fixture
 def generate_inputs_cp(fixture_code, generate_structure, generate_upf_data):
-    """Generate default inputs for a CpCalculation"""
+    """Generate default inputs for a CpCalculation."""
+
     def _generate_inputs_cp(autopilot=False):
-        """Generate default inputs for a CpCalculation"""
+        """Generate default inputs for a CpCalculation."""
         from aiida.orm import Dict
         from aiida_quantumespresso.utils.resources import get_default_options
 
@@ -431,7 +430,19 @@ def generate_inputs_cp(fixture_code, generate_structure, generate_upf_data):
             }
         }
         if autopilot:
-            inputs['settings']=Dict(dict={'AUTOPILOT':[ {'onstep':2, 'what':'dt','newvalue':42.0}, {'onstep':3, 'what':'dt','newvalue':42.42} ]})
+            inputs['settings'] = Dict(
+                dict={
+                    'AUTOPILOT': [{
+                        'onstep': 2,
+                        'what': 'dt',
+                        'newvalue': 42.0
+                    }, {
+                        'onstep': 3,
+                        'what': 'dt',
+                        'newvalue': 42.42
+                    }]
+                }
+            )
 
         return inputs
 
@@ -440,14 +451,20 @@ def generate_inputs_cp(fixture_code, generate_structure, generate_upf_data):
 
 @pytest.fixture
 def call_something():
-    def _do_stuff(ClassType, what, data, func=call_something,**kwargs):
-        """Recursive call to a member function of a particular type on a iterable structure of dict and list"""
-        if isinstance(data,ClassType):
-            return getattr(data,what)(**kwargs)
-        elif isinstance(data, list):
-            return [ func(ClassType, what, _, func=func, **kwargs) for _ in data ]
-        elif isinstance(data, dict):
-            return {key : func(ClassType, what, data[key], func=func, **kwargs ) for key in data}
-        else:
-            return data
+    """Recursive (in dict and list) member function application.
+
+    Return a function to do a recursive substitution of element,
+    with getattr(element, what), where what is provided.
+    """
+
+    def _do_stuff(class_type, what, data, func=call_something, **kwargs):
+        """Recursive call to a member function of a particular type on a iterable structure of dict and list."""
+        if isinstance(data, class_type):
+            return getattr(data, what)(**kwargs)
+        if isinstance(data, list):
+            return [func(class_type, what, _, func=func, **kwargs) for _ in data]
+        if isinstance(data, dict):
+            return {key: func(class_type, what, data[key], func=func, **kwargs) for key in data}
+        return data
+
     return _do_stuff
