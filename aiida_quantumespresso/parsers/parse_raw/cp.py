@@ -4,11 +4,11 @@ from xmlschema import XMLSchema
 from xmlschema.etree import ElementTree
 
 from aiida_quantumespresso.parsers import QEOutputParsingError, get_parser_info
-from aiida_quantumespresso.parsers.parse_xml.pw.legacy import (read_xml_card,
-                   parse_xml_child_integer,xml_card_header,parse_xml_child_bool,
-                   parse_xml_child_str,parse_xml_child_float,
-                   parse_xml_child_attribute_str,xml_card_cell,xml_card_ions,
-                   xml_card_exchangecorrelation,xml_card_spin,xml_card_planewaves)
+from aiida_quantumespresso.parsers.parse_xml.pw.legacy import (
+    read_xml_card, parse_xml_child_integer, xml_card_header, parse_xml_child_bool, parse_xml_child_str,
+    parse_xml_child_float, parse_xml_child_attribute_str, xml_card_cell, xml_card_ions, xml_card_exchangecorrelation,
+    xml_card_spin, xml_card_planewaves
+)
 from aiida_quantumespresso.parsers.parse_xml.pw.parse import parse_pw_xml_post_6_2
 from aiida_quantumespresso.parsers.parse_xml.pw.versions import get_xml_file_version, get_schema_filepath, get_default_schema_filepath, QeXmlVersion
 #TODO: check if we have to remove this
@@ -75,9 +75,11 @@ def parse_cp_text_output(data, xml_data):
 
     parsed_data = {}
     parsed_data['warnings'] = []
-
+    conjugate_gradient = False
     for count, line in enumerate(data):
-
+        if 'conjugate gradient' in line.lower():
+            conjugate_gradient = True
+            parsed_data['conjugate_gradient'] = True
         if 'warning' in line.lower():
             parsed_data['warnings'].append(line)
         elif 'bananas' in line:
@@ -88,10 +90,10 @@ def parse_cp_text_output(data, xml_data):
                 parsed_data['wall_time'] = time
             except:
                 raise QEOutputParsingError('Error while parsing wall time.')
-    try:
-        for count,line in enumerate(reversed(data)):
+    if not conjugate_gradient:
+        for count, line in enumerate(reversed(data)):
             if 'nfi' in line and 'ekinc' in line and 'econs' in line:
-                this_line = data[len(data)-count]
+                this_line = data[len(data) - count]
                 try:
                     parsed_data['ekinc'] = [float(this_line.split()[1])]
                 except ValueError:
@@ -136,8 +138,9 @@ def parse_cp_text_output(data, xml_data):
                     parsed_data['xnhp0'] = [float(this_line.split()[11])]
                 except (ValueError, IndexError):
                     pass
-    except IndexError:
+    else:
         #when the cp does a cg, the output is different and the parser above does not work
+        #TODO: understand what the cg prints out and parse it (it is undocumented)
         pass
 
     return parsed_data
@@ -158,21 +161,21 @@ def parse_cp_xml_counter_output(data):
 
     return parsed_data
 
+
 def parse_cp_counter_output(data):
     """Parse file print_counter data must be a single string, as returned by file.read() (notice the difference
     with parse_text_output!) On output, a dictionary with parsed values."""
-    parsed_data={}
-    cardname='LAST_SUCCESSFUL_PRINTOUT'
-    tagname='STEP'
+    parsed_data = {}
+    cardname = 'LAST_SUCCESSFUL_PRINTOUT'
+    tagname = 'STEP'
     numbers = [int(s) for s in data.split() if s.isdigit()]
     if numbers:
-        parsed_data[cardname.lower().replace('-','_')] = numbers[0]
+        parsed_data[cardname.lower().replace('-', '_')] = numbers[0]
 
     return parsed_data
 
 
-
-def parse_cp_raw_output(out_file, xml_file=None, xml_counter_file=None,print_counter_xml=True):
+def parse_cp_raw_output(out_file, xml_file=None, xml_counter_file=None, print_counter_xml=True):
 
     parser_info = get_parser_info(parser_info_template='aiida-quantumespresso parser cp.x v{}')
 
@@ -240,120 +243,109 @@ def parse_cp_xml_output(data):
 
     # CARD CONTROL
 
-    cardname='CONTROL'
+    cardname = 'CONTROL'
     target_tags = read_xml_card(dom, cardname)
 
-
-    tagname='PP_CHECK_FLAG'
+    tagname = 'PP_CHECK_FLAG'
     parsed_data[tagname.lower()] = parse_xml_child_bool(tagname, target_tags)
-
 
     # CARD STATUS
 
     cardname = 'STATUS'
-    target_tags = read_xml_card(dom,cardname)
-
+    target_tags = read_xml_card(dom, cardname)
 
     tagname = 'STEP'
     attrname = 'ITERATION'
-    parsed_data[(tagname+'_'+attrname).lower()]=int(parse_xml_child_attribute_str(tagname,attrname,target_tags))
-
+    parsed_data[(tagname + '_' + attrname).lower()] = int(parse_xml_child_attribute_str(tagname, attrname, target_tags))
 
     tagname = 'TIME'
     attrname = 'UNITS'
-    value=parse_xml_child_float(tagname,target_tags)
+    value = parse_xml_child_float(tagname, target_tags)
 
-    units = parse_xml_child_attribute_str(tagname,attrname,target_tags)
+    units = parse_xml_child_attribute_str(tagname, attrname, target_tags)
     if units not in ['pico-seconds']:
         raise QEOutputParsingError('Units {} are not supported by parser'.format(units))
-    parsed_data[tagname.lower()]=value
+    parsed_data[tagname.lower()] = value
 
     tagname = 'TITLE'
-    parsed_data[tagname.lower()]=parse_xml_child_str(tagname,target_tags)
-
+    parsed_data[tagname.lower()] = parse_xml_child_str(tagname, target_tags)
 
     # CARD CELL
-    parsed_data,lattice_vectors,volume = copy.deepcopy(xml_card_cell(parsed_data,dom))
-
+    parsed_data, lattice_vectors, volume = copy.deepcopy(xml_card_cell(parsed_data, dom))
 
     # CARD IONS
-    parsed_data = copy.deepcopy(xml_card_ions(parsed_data,dom,lattice_vectors,volume))
-
+    parsed_data = copy.deepcopy(xml_card_ions(parsed_data, dom, lattice_vectors, volume))
 
     # CARD PLANE WAVES
 
-    parsed_data = copy.deepcopy(xml_card_planewaves(parsed_data,dom,'cp'))
-
+    parsed_data = copy.deepcopy(xml_card_planewaves(parsed_data, dom, 'cp'))
 
     # CARD SPIN
-    parsed_data = copy.deepcopy(xml_card_spin(parsed_data,dom))
-
+    parsed_data = copy.deepcopy(xml_card_spin(parsed_data, dom))
 
     # CARD EXCHANGE_CORRELATION
-    parsed_data = copy.deepcopy(xml_card_exchangecorrelation(parsed_data,dom))
-
+    parsed_data = copy.deepcopy(xml_card_exchangecorrelation(parsed_data, dom))
 
     # TODO CARD OCCUPATIONS
 
     # CARD BRILLOUIN ZONE
     # TODO: k points are saved for CP... Why?
 
-    cardname='BRILLOUIN_ZONE'
-    target_tags=read_xml_card(dom, cardname)
+    cardname = 'BRILLOUIN_ZONE'
+    target_tags = read_xml_card(dom, cardname)
 
+    tagname = 'NUMBER_OF_K-POINTS'
+    parsed_data[tagname.replace('-', '_').lower()] = parse_xml_child_integer(tagname, target_tags)
 
-    tagname='NUMBER_OF_K-POINTS'
-    parsed_data[tagname.replace('-','_').lower()] = parse_xml_child_integer(tagname, target_tags)
-
-
-    tagname='UNITS_FOR_K-POINTS'
-    attrname='UNITS'
-    metric=parse_xml_child_attribute_str(tagname,attrname,target_tags)
+    tagname = 'UNITS_FOR_K-POINTS'
+    attrname = 'UNITS'
+    metric = parse_xml_child_attribute_str(tagname, attrname, target_tags)
     if metric not in ['2 pi / a']:
-        raise QEOutputParsingError('Error parsing attribute %s, tag %s inside %s, units unknown'% (attrname,tagname, target_tags.tagName ) )
-    parsed_data[tagname.replace('-','_').lower()]=metric
-
+        raise QEOutputParsingError(
+            'Error parsing attribute %s, tag %s inside %s, units unknown' % (attrname, tagname, target_tags.tagName)
+        )
+    parsed_data[tagname.replace('-', '_').lower()] = metric
 
     # TODO: check what happens if one does not use the monkhorst pack in the code
     tagname = 'MONKHORST_PACK_GRID'
     try:
-        a=target_tags.getElementsByTagName(tagname)[0]
-        value=[int(a.getAttribute('nk'+str(i+1))) for i in range(3)]
-        parsed_data[tagname.replace('-','_').lower()]=value
+        a = target_tags.getElementsByTagName(tagname)[0]
+        value = [int(a.getAttribute('nk' + str(i + 1))) for i in range(3)]
+        parsed_data[tagname.replace('-', '_').lower()] = value
     except:
-        raise QEOutputParsingError('Error parsing tag %s inside %s.'% (tagname, target_tags.tagName ) )
+        raise QEOutputParsingError('Error parsing tag %s inside %s.' % (tagname, target_tags.tagName))
 
-    tagname='MONKHORST_PACK_OFFSET'
+    tagname = 'MONKHORST_PACK_OFFSET'
     try:
-        a=target_tags.getElementsByTagName(tagname)[0]
-        value=[int(a.getAttribute('k'+str(i+1))) for i in range(3)]
-        parsed_data[tagname.replace('-','_').lower()]=value
+        a = target_tags.getElementsByTagName(tagname)[0]
+        value = [int(a.getAttribute('k' + str(i + 1))) for i in range(3)]
+        parsed_data[tagname.replace('-', '_').lower()] = value
     except:
-        raise QEOutputParsingError('Error parsing tag %s inside %s.'% (tagname, target_tags.tagName ) )
+        raise QEOutputParsingError('Error parsing tag %s inside %s.' % (tagname, target_tags.tagName))
 
     try:
-        kpoints=[]
+        kpoints = []
         for i in range(parsed_data['number_of_k_points']):
-            tagname='K-POINT.'+str(i+1)
-            a=target_tags.getElementsByTagName(tagname)[0]
-            b=a.getAttribute('XYZ').replace('\n','').rsplit()
-            value=[ float(s) for s in b ]
+            tagname = 'K-POINT.' + str(i + 1)
+            a = target_tags.getElementsByTagName(tagname)[0]
+            b = a.getAttribute('XYZ').replace('\n', '').rsplit()
+            value = [float(s) for s in b]
 
-            metric=parsed_data['units_for_k_points']
-            if metric=='2 pi / a':
-                value=[ float(s)/parsed_data['lattice_parameter'] for s in value ]
+            metric = parsed_data['units_for_k_points']
+            if metric == '2 pi / a':
+                value = [float(s) / parsed_data['lattice_parameter'] for s in value]
 
-                weight=float(a.getAttribute('WEIGHT'))
+                weight = float(a.getAttribute('WEIGHT'))
 
-                kpoints.append([value,weight])
+                kpoints.append([value, weight])
 
-        parsed_data['k_point']=kpoints
+        parsed_data['k_point'] = kpoints
     except:
-        raise QEOutputParsingError('Error parsing tag K-POINT.# inside %s.'% (target_tags.tagName ) )
+        raise QEOutputParsingError('Error parsing tag K-POINT.# inside %s.' % (target_tags.tagName))
 
-    tagname='NORM-OF-Q'
+    tagname = 'NORM-OF-Q'
     # TODO decide if save this parameter
-    parsed_data[tagname.replace('-','_').lower()]=parse_xml_child_float(tagname,target_tags)
+    parsed_data[tagname.replace('-', '_').lower()] = parse_xml_child_float(tagname, target_tags)
 
     # CARD PARALLELISM
     # can be optional
@@ -392,7 +384,6 @@ def parse_cp_xml_output(data):
 
     cardname = 'TIMESTEPS'
     target_tags = read_xml_card(dom, cardname)
-
 
     for tagname in ['STEP0', 'STEPM']:
         try:
@@ -610,29 +601,24 @@ def parse_cp_xml_output(data):
             except:
                 pass
         except Exception as e:
-            raise QEOutputParsingError('Error parsing CARD {}'.format(cardname) )
+            raise QEOutputParsingError('Error parsing CARD {}'.format(cardname))
 
     # CARD BAND_STRUCTURE_INFO
 
-    cardname='BAND_STRUCTURE_INFO'
-    target_tags=read_xml_card(dom,cardname)
+    cardname = 'BAND_STRUCTURE_INFO'
+    target_tags = read_xml_card(dom, cardname)
 
+    tagname = 'NUMBER_OF_ATOMIC_WFC'
+    parsed_data[tagname.lower().replace('-', '_')] = parse_xml_child_integer(tagname, target_tags)
 
-    tagname='NUMBER_OF_ATOMIC_WFC'
-    parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
+    tagname = 'NUMBER_OF_ELECTRONS'
+    parsed_data[tagname.lower().replace('-', '_')] = int(parse_xml_child_float(tagname, target_tags))
 
+    tagname = 'NUMBER_OF_BANDS'
+    parsed_data[tagname.lower().replace('-', '_')] = parse_xml_child_integer(tagname, target_tags)
 
-    tagname='NUMBER_OF_ELECTRONS'
-    parsed_data[tagname.lower().replace('-','_')] = int(parse_xml_child_float(tagname,target_tags))
-
-
-    tagname='NUMBER_OF_BANDS'
-    parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
-
-
-    tagname='NUMBER_OF_SPIN_COMPONENTS'
-    parsed_data[tagname.lower().replace('-','_')] = parse_xml_child_integer(tagname,target_tags)
-
+    tagname = 'NUMBER_OF_SPIN_COMPONENTS'
+    parsed_data[tagname.lower().replace('-', '_')] = parse_xml_child_integer(tagname, target_tags)
 
     # TODO
     # - EIGENVALUES (that actually just contains occupations)

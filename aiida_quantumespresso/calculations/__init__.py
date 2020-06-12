@@ -221,7 +221,6 @@ class BasePwCpInputGenerator(CalcJob):
         calcinfo.retrieve_list.extend(self.xml_filepaths)
         calcinfo.retrieve_list += settings.pop('ADDITIONAL_RETRIEVE_LIST', [])
         calcinfo.retrieve_list += self._internal_retrieve_list
-        print(('calcinfo.retrieve_list = ', calcinfo.retrieve_list))
 
         # Retrieve the k-point directories with the xml files to the temporary folder
         # to parse the band eigenvalues and occupations but not to have to save the raw files
@@ -242,10 +241,13 @@ class BasePwCpInputGenerator(CalcJob):
 
     @staticmethod
     def _generate_PWCP_input_tail(*args, **kwargs):
+        """Generate tail of input file.
+
+        By default, nothing specific is generated.
+        This method can be implemented again in derived classes, and it will be called by _generate_PWCPinputdata
+        """
         # pylint: disable=unused-argument,invalid-name
-        """By default, nothing specific is generated.
-           This method can be implemented again in derived classes, and it will be called by _generate_PWCPinputdata"""
-        return u''
+        return ''
 
     @classmethod
     def _generate_PWCPinputdata(cls, parameters, settings, pseudos, structure, kpoints=None, use_fractional=False):  # pylint: disable=invalid-name
@@ -294,7 +296,7 @@ class BasePwCpInputGenerator(CalcJob):
         # Set some variables (look out at the case! NAMELISTS should be
         # uppercase, internal flag names must be lowercase)
         input_params.setdefault('SYSTEM', {})
-        input_params['SYSTEM']['ibrav']= 0 
+        input_params['SYSTEM']['ibrav'] = 0
         input_params['SYSTEM']['nat'] = len(structure.sites)
         input_params['SYSTEM']['ntyp'] = len(structure.kinds)
 
@@ -582,7 +584,7 @@ class BasePwCpInputGenerator(CalcJob):
 
         #this calls subclass method to parse additional input parameters
         #specific to PW or CP and generate additional cards
-        inputfile += cls._generate_PWCP_input_tail(input_params=input_params,settings=settings)
+        inputfile += cls._generate_PWCP_input_tail(input_params=input_params, settings=settings)
 
         if input_params:
             raise exceptions.InputValidationError(

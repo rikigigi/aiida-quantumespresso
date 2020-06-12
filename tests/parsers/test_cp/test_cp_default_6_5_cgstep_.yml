@@ -13,6 +13,7 @@ parameters:
         - 1.0
   beta_real_space: false
   charge_density: ./charge-density.dat
+  conjugate_gradient: true
   constraint_mag: 0
   creator_name: cp
   creator_version: '6.5'
