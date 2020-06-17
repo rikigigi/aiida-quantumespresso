@@ -90,7 +90,7 @@ class CpParser(Parser):
             ]
 
             #order of atom in the output trajectory changed somewhere after 6.5
-            if LooseVersion(out_dict['creator_version']) > LooseVersion('6.5'):
+            if LooseVersion(out_dict['creator_version']) > LooseVersion('6.4'):
                 new_cp_ordering = True
             else:
                 new_cp_ordering = False
