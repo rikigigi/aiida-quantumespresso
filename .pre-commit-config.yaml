@@ -9,7 +9,8 @@ repos:
     -   id: trailing-whitespace
         exclude: >-
             (?x)^(
-                tests/.*.in$
+                tests/.*.in$|
+                tests/parsers/fixtures/cp/.*
             )$
 
 -   repo: https://github.com/PyCQA/prospector
@@ -40,6 +41,10 @@ repos:
         language: system
         types: [python]
         args: ['-i']
+        exclude: >-
+                (?x)^(
+                    tests/parsers/fixtures/cp/.*
+                )$
 
     -   id: version-number
         name: Check consistency in version number

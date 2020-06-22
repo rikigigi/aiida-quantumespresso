@@ -18,6 +18,7 @@ import os
 
 from aiida import orm
 from aiida.common.lang import classproperty
+from aiida.common import exceptions
 
 from aiida_quantumespresso.calculations import BasePwCpInputGenerator
 
@@ -162,8 +163,8 @@ class CpCalculation(BasePwCpInputGenerator):
 
     @staticmethod
     def _generate_PWCP_input_tail(*args, **kwargs):
-        """Parse CP specific input parameters"""
-        input_params = kwargs['input_params']
+        """Parse CP specific input parameters."""
+        #input_params = kwargs['input_params']
         settings = kwargs['settings']
         #AUTOPILOT
         inputfile = u''
@@ -185,8 +186,8 @@ class CpCalculation(BasePwCpInputGenerator):
             raise exceptions.InputValidationError(
                     '''AUTOPILOT input: you must specify a list of dictionaries like the following:
                      [
-                        \{'onstep' : 10, 'what' : 'dt', 'newvalue' : 5.0 \},
-                        \{'onstep' : 20, 'what' : 'whatever', 'newvalue' : 'pippo'\}
+                        {{'onstep' : 10, 'what' : 'dt', 'newvalue' : 5.0 }},
+                        {{'onstep' : 20, 'what' : 'whatever', 'newvalue' : 'pippo'}}
                      ]
                      You specified {}
                      '''.format(autopilot)
