@@ -140,7 +140,7 @@ class CpParser(Parser):
                         # NOTE: the trajectory output has the cell matrix transposed!!
                         raw_trajectory['cells'] = numpy.array(traj_data['cells_traj_data']).transpose((0, 2, 1))
                     if extension == 'pos':
-                        raw_trajectory['times'] = numpy.array(traj_data['{}_traj_times'.format(name)])
+                        raw_trajectory['traj_times'] = numpy.array(traj_data['{}_traj_times'.format(name)])
                 except IOError:
                     out_dict['warnings'].append('Unable to open the {} file... skipping.'.format(extension.upper()))
 
@@ -161,7 +161,7 @@ class CpParser(Parser):
                     # heuristics to check that I'm doing the right thing
                     #print "New version"
                     raw_trajectory['steps'] = numpy.array(matrix[:, 0], dtype=int)
-                    raw_trajectory['evp_times'] = matrix[:, 1]  # TPS, ps
+                    raw_trajectory['times'] = matrix[:, 1]  # TPS, ps
                     raw_trajectory['electronic_kinetic_energy'] = matrix[:, 2] * hartree_to_ev  # EKINC, eV
                     raw_trajectory['cell_temperature'] = matrix[:, 3]  # TEMPH, K
                     raw_trajectory['ionic_temperature'] = matrix[:, 4]  # TEMPP, K
@@ -183,7 +183,7 @@ class CpParser(Parser):
                     raw_trajectory['energy_constant_motion'] = matrix[:, 7] * hartree_to_ev  # ECONT, eV
                     raw_trajectory['volume'] = matrix[:, 8] * (bohr_to_ang**3)  # volume, angstrom^3
                     raw_trajectory['pressure'] = matrix[:, 9]  # out_press, GPa
-                    raw_trajectory['evp_times'] = matrix[:, 10]  # TPS, ps
+                    raw_trajectory['times'] = matrix[:, 10]  # TPS, ps
 
                 # Huristics to understand if it's correct.
                 # A better heuristics could also try to fix possible issues
@@ -191,16 +191,21 @@ class CpParser(Parser):
                 # the __OLD_FORMAT flag to get back the old version format...)
                 # but I won't do it, as there may be also other columns swapped.
                 # Better to stop and ask the user to check what's going on.
+                
+                #work around for 100ps format bug
+                mask=numpy.array(raw_trajectory['traj_times'])>=0
                 max_time_difference = abs(
-                    numpy.array(raw_trajectory['times']) - numpy.array(raw_trajectory['evp_times'])
+                    numpy.array(raw_trajectory['times'])[mask] - numpy.array(raw_trajectory['traj_times'])[mask]
                 ).max()
-                if max_time_difference > 1.e-4:  # It is typically ~1.e-7 due to roundoff errors
+                if max_time_difference > 1.e-4 or numpy.array(raw_trajectory['times'])[mask==False].min()<100.0:  # It is typically ~1.e-7 due to roundoff errors
                     # If there is a large discrepancy
                     # it means there is something very weird going on...
                     return self.exit_codes.ERROR_READING_TRAJECTORY_DATA
 
-                # Delete evp_times in any case, it's a duplicate of 'times'
-                del raw_trajectory['evp_times']
+                # keep both times array (that usually are duplicated)
+                # so that the user can check them by himselves
+                if len(numpy.array(raw_trajectory['times'])[mask])>0:
+                    out_dict['warnings'].append('100ps format bug detected: ignoring trajectory\'s printed time from 100ps on')
             except IOError:
                 out_dict['warnings'].append('Unable to open the EVP file... skipping.')
 
