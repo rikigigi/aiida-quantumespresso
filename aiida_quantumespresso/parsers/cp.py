@@ -194,17 +194,23 @@ class CpParser(Parser):
                 
                 #work around for 100ps format bug
                 mask=numpy.array(raw_trajectory['traj_times'])>=0
-                max_time_difference = abs(
-                    numpy.array(raw_trajectory['times'])[mask] - numpy.array(raw_trajectory['traj_times'])[mask]
-                ).max()
-                if max_time_difference > 1.e-4 or numpy.array(raw_trajectory['times'])[mask==False].min()<100.0:  # It is typically ~1.e-7 due to roundoff errors
+                len_bugged=len(numpy.array(raw_trajectory['times'])[mask==False])
+                len_ok=len(numpy.array(raw_trajectory['times'])[mask])
+                if len_ok>0:
+                    max_time_difference = abs(
+                        numpy.array(raw_trajectory['times'])[mask] - numpy.array(raw_trajectory['traj_times'])[mask]
+                    ).max()
+                else:
+                    max_time_difference = 0.0
+
+                if max_time_difference > 1.e-4 or (len_bugged>0 and numpy.array(raw_trajectory['times'])[mask==False].min()<100.0 ):  # It is typically ~1.e-7 due to roundoff errors
                     # If there is a large discrepancy
                     # it means there is something very weird going on...
                     return self.exit_codes.ERROR_READING_TRAJECTORY_DATA
 
                 # keep both times array (that usually are duplicated)
                 # so that the user can check them by himselves
-                if len(numpy.array(raw_trajectory['times'])[mask])>0:
+                if len_bugged>0:
                     out_dict['warnings'].append('100ps format bug detected: ignoring trajectory\'s printed time from 100ps on')
             except IOError:
                 out_dict['warnings'].append('Unable to open the EVP file... skipping.')
