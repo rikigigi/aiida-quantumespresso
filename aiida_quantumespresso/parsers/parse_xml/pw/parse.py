@@ -50,7 +50,7 @@ def parse_xml(xml_file, dir_with_bands=None):
     xml_file_version = get_xml_file_version(xml_parsed)
 
     if xml_file_version == QeXmlVersion.POST_6_2:
-        parsed_data, logs = parse_pw_xml_post_6_2(xml_parsed)
+        parsed_data, logs = parse_xml_post_6_2(xml_parsed, schema='pw')
     elif xml_file_version == QeXmlVersion.PRE_6_2:
         xml_file.seek(0)
         parsed_data, logs = parse_pw_xml_pre_6_2(xml_file, dir_with_bands)
@@ -58,10 +58,11 @@ def parse_xml(xml_file, dir_with_bands=None):
     return parsed_data, logs
 
 
-def parse_pw_xml_post_6_2(xml):
-    """Parse the content of XML output file written by `pw.x` with the new schema-based XML format.
+def parse_xml_post_6_2(xml, schema):
+    """Parse the content of XML output file written by `pw.x` and `cp.x` with the new schema-based XML format.
 
     :param xml: parsed XML
+    :param schema: 'pw' for pw schema, 'cp' for cp schema
     :returns: tuple of two dictionaries, with the parsed data and log messages, respectively
     """
     e_bohr2_to_coulomb_m2 = 57.214766  # e/a0^2 to C/m^2 (electric polarization) from Wolfram Alpha
@@ -69,7 +70,7 @@ def parse_pw_xml_post_6_2(xml):
     logs = get_logging_container()
 
     # detect schema name+path from XML contents
-    schema_filepath = get_schema_filepath(xml)
+    schema_filepath = get_schema_filepath(xml, schema=schema)
 
     try:
         xsd = XMLSchema(schema_filepath)

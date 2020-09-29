@@ -30,14 +30,18 @@ def get_xml_file_version(xml):
         raise XMLUnsupportedFormatError('unrecognized XML file version')
 
 
-def get_schema_filepath(xml):
+def get_schema_filepath(xml, schema):
     """Return the absolute filepath to the XML schema file that can be used to parse the given XML.
 
     :param xml: the pre-parsed XML object
     :return: the XSD absolute filepath
     """
-    schema_directory = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'schemas')
-    schema_filename = get_schema_filename(xml)
+    if schema != 'cp' and schema != 'pw':
+        raise KeyError('schema argument must be "cp" pr "pw"')
+    schema_directory = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), 'schemas' if schema == 'pw' else 'schemas_cp'
+    )
+    schema_filename = get_schema_filename(xml) if schema == 'pw' else 'qes_cp_devel_030920.xsd'
     schema_filepath = os.path.join(schema_directory, schema_filename)
 
     return schema_filepath
