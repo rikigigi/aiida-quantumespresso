@@ -39,9 +39,10 @@ def get_schema_filepath(xml, schema):
     if schema != 'cp' and schema != 'pw':
         raise KeyError('schema argument must be "cp" pr "pw"')
     schema_directory = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), 'schemas' if schema == 'pw' else 'schemas_cp'
+        os.path.dirname(os.path.abspath(__file__)),
+        'schemas'  #if schema == 'pw' else 'schemas_cp'
     )
-    schema_filename = get_schema_filename(xml) if schema == 'pw' else 'qes_cp_devel_030920.xsd'
+    schema_filename = get_schema_filename(xml)  # if schema == 'pw' else 'qes_cp_devel_030920.xsd'
     schema_filepath = os.path.join(schema_directory, schema_filename)
 
     return schema_filepath
