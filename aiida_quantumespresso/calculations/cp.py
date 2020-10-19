@@ -167,18 +167,18 @@ class CpCalculation(BasePwCpInputGenerator):
         #input_params = kwargs['input_params']
         settings = kwargs['settings']
         #AUTOPILOT
-        inputfile = u''
+        inputfile = ''
         try:
             autopilot = settings.pop('AUTOPILOT', [])
-            autopilotinput = u''
+            autopilotinput = ''
             if autopilot:
-                autopilotinput += u'\nAUTOPILOT\n'
+                autopilotinput += '\nAUTOPILOT\n'
                 for event in autopilot:
                     if isinstance(event['newvalue'], str):
-                        autopilotinput += u'ON_STEP = {} : \'{}\' = {}\n'.format(
+                        autopilotinput += 'ON_STEP = {} : \'{}\' = {}\n'.format(
                         event['onstep'], event['what'], event['newvalue'])
                     else:
-                        autopilotinput += u'ON_STEP = {} : {} = {}\n'.format(
+                        autopilotinput += 'ON_STEP = {} : {} = {}\n'.format(
                         event['onstep'], event['what'], event['newvalue'])
                 autopilotinput += 'ENDRULES\n'
             inputfile += autopilotinput
