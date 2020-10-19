@@ -251,7 +251,7 @@ class PwParser(Parser):
         :param parser_options: optional dictionary with parser options
         :return: tuple of two dictionaries, first with raw parsed data and second with log messages
         """
-        from .parse_xml.pw.exceptions import XMLParseError, XMLUnsupportedFormatError
+        from aiida_quantumespresso.parsers.parse_xml.exceptions import XMLParseError, XMLUnsupportedFormatError
         from .parse_xml.pw.parse import parse_xml
 
         logs = get_logging_container()
