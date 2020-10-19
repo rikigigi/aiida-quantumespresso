@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 from distutils.version import LooseVersion
-
 import numpy
-from aiida.common import NotExistent
-from aiida.orm import Dict, TrajectoryData
 
-from qe_tools.constants import bohr_to_ang, hartree_to_ev, timeau_to_sec
+from aiida.orm import Dict, TrajectoryData
+from qe_tools import CONSTANTS
+
 from aiida_quantumespresso.parsers.parse_raw.cp import parse_cp_raw_output, parse_cp_traj_stanzas
 from .base import Parser
 
@@ -20,13 +19,10 @@ class CpParser(Parser):
 
         Does all the logic here.
         """
-        try:
-            out_folder = self.retrieved
-        except NotExistent:
-            return self.exit(self.exit_codes.ERROR_NO_RETRIEVED_FOLDER)
+        retrieved = self.retrieved
 
         # check what is inside the folder
-        list_of_files = out_folder._repository.list_object_names()
+        list_of_files = retrieved._repository.list_object_names()
 
         # options.metadata become attributes like this:
         stdout_filename = self.node.get_attribute('output_filename')
@@ -57,7 +53,7 @@ class CpParser(Parser):
             self.logger.error(
                 'We could not find the print counter file in the output (' +
                 self.node.process_class._FILE_PRINT_COUNTER_BASENAME + ' or ' +
-                self.node.process_class._FILE_XML_PRINT_COUNTER_BASENAME + ' not in {} )'.format(list_of_files) +
+                self.node.process_class._FILE_XML_PRINT_COUNTER_BASENAME + f' not in {list_of_files} )' +
                 'assuming no trajectory output was produced'
             )
             no_trajectory_output = True
@@ -72,13 +68,10 @@ class CpParser(Parser):
                 self.logger.info('print counter in xml format')
                 FILE_PRINT_COUNTER_BASENAME = self.node.process_class._FILE_XML_PRINT_COUNTER_BASENAME
 
-        # Let's pass file handlers to this function
-        out_dict, _raw_successful = parse_cp_raw_output(
-            out_folder.open(stdout_filename),
-            out_folder.open(xml_files[0]),
-            None if no_trajectory_output else out_folder.open(FILE_PRINT_COUNTER_BASENAME),
-            print_counter_xml=print_counter_xml
-        )
+        output_stdout = retrieved.get_object_content(stdout_filename)
+        output_xml = retrieved.get_object_content(xml_files[0])
+        output_xml_counter = None if no_trajectory_output else retrieved.get_object_content(FILE_PRINT_COUNTER_BASENAME)
+        out_dict, _raw_successful = parse_cp_raw_output(output_stdout, output_xml, output_xml_counter)
 
         if not no_trajectory_output:
             # parse the trajectory. Units in Angstrom, picoseconds and eV.
@@ -108,7 +101,7 @@ class CpParser(Parser):
                         out_dict['structure']['species'], out_dict['structure']['atoms']
                     )
 
-            pos_filename = '{}.{}'.format(self.node.process_class._PREFIX, 'pos')
+            pos_filename = f'{self.node.process_class._PREFIX}.pos'
             if pos_filename not in list_of_files:
                 out_dict['warnings'].append('Unable to open the POS file... skipping.')
                 return self.exit_codes.ERROR_READING_POS_FILE
@@ -116,37 +109,38 @@ class CpParser(Parser):
                 'number_of_atoms', out_dict['structure']['number_of_atoms'] if 'structure' in out_dict else None
             )
             trajectories = [
-                ('positions', 'pos', bohr_to_ang, number_of_atoms),
-                ('cells', 'cel', bohr_to_ang, 3),
-                ('velocities', 'vel', bohr_to_ang / (timeau_to_sec * 10**12), number_of_atoms),
-                ('forces', 'for', hartree_to_ev / bohr_to_ang, number_of_atoms),
+                ('positions', 'pos', CONSTANTS.bohr_to_ang, number_of_atoms),
+                ('cells', 'cel', CONSTANTS.bohr_to_ang, 3),
+                ('velocities', 'vel', CONSTANTS.bohr_to_ang / (CONSTANTS.timeau_to_sec * 10**12), number_of_atoms),
+                ('forces', 'for', CONSTANTS.hartree_to_ev / CONSTANTS.bohr_to_ang, number_of_atoms),
             ]
 
             for name, extension, scale, elements in trajectories:
                 try:
-                    with out_folder.open('{}.{}'.format(self.node.process_class._PREFIX, extension)) as datafile:
+                    with retrieved.open(f'{self.node.process_class._PREFIX}.{extension}') as datafile:
                         data = [l.split() for l in datafile]
                         # POSITIONS stored in angstrom
                     traj_data = parse_cp_traj_stanzas(
-                        num_elements=elements, splitlines=data, prepend_name='{}_traj'.format(name), rescale=scale
+                        num_elements=elements, splitlines=data, prepend_name=f'{name}_traj', rescale=scale
                     )
                     # here initialize the dictionary. If the parsing of positions fails, though, I don't have anything
                     # out of the CP dynamics. Therefore, the calculation status is set to FAILED.
                     if extension != 'cel':
-                        raw_trajectory[
-                            '{}_ordered'.format(name)
-                        ] = self._get_reordered_array(traj_data['{}_traj_data'.format(name)], reordering)
+                        raw_trajectory[f'{name}_ordered'] = self._get_reordered_array(
+                            traj_data[f'{name}_traj_data'], reordering
+                        )
                     else:
                         # NOTE: the trajectory output has the cell matrix transposed!!
                         raw_trajectory['cells'] = numpy.array(traj_data['cells_traj_data']).transpose((0, 2, 1))
                     if extension == 'pos':
-                        raw_trajectory['traj_times'] = numpy.array(traj_data['{}_traj_times'.format(name)])
+                        raw_trajectory['traj_times'] = numpy.array(traj_data[f'{name}_traj_times'])
                 except IOError:
-                    out_dict['warnings'].append('Unable to open the {} file... skipping.'.format(extension.upper()))
+                    out_dict['warnings'].append(f'Unable to open the {extension.upper()} file... skipping.')
 
             # =============== EVP trajectory ============================
             try:
-                matrix = numpy.genfromtxt(out_folder.open('{}.evp'.format(self._node.process_class._PREFIX)))
+                with retrieved.open(f'{self._node.process_class._PREFIX}.evp') as handle:
+                    matrix = numpy.genfromtxt(handle)
                 # there might be a different format if the matrix has one row only
                 try:
                     matrix.shape[1]
@@ -162,26 +156,26 @@ class CpParser(Parser):
                     #print "New version"
                     raw_trajectory['steps'] = numpy.array(matrix[:, 0], dtype=int)
                     raw_trajectory['times'] = matrix[:, 1]  # TPS, ps
-                    raw_trajectory['electronic_kinetic_energy'] = matrix[:, 2] * hartree_to_ev  # EKINC, eV
+                    raw_trajectory['electronic_kinetic_energy'] = matrix[:, 2] * CONSTANTS.hartree_to_ev  # EKINC, eV
                     raw_trajectory['cell_temperature'] = matrix[:, 3]  # TEMPH, K
                     raw_trajectory['ionic_temperature'] = matrix[:, 4]  # TEMPP, K
-                    raw_trajectory['scf_total_energy'] = matrix[:, 5] * hartree_to_ev  # ETOT, eV
-                    raw_trajectory['enthalpy'] = matrix[:, 6] * hartree_to_ev  # ENTHAL, eV
-                    raw_trajectory['enthalpy_plus_kinetic'] = matrix[:, 7] * hartree_to_ev  # ECONS, eV
-                    raw_trajectory['energy_constant_motion'] = matrix[:, 8] * hartree_to_ev  # ECONT, eV
-                    raw_trajectory['volume'] = matrix[:, 9] * (bohr_to_ang**3)  # volume, angstrom^3
+                    raw_trajectory['scf_total_energy'] = matrix[:, 5] * CONSTANTS.hartree_to_ev  # ETOT, eV
+                    raw_trajectory['enthalpy'] = matrix[:, 6] * CONSTANTS.hartree_to_ev  # ENTHAL, eV
+                    raw_trajectory['enthalpy_plus_kinetic'] = matrix[:, 7] * CONSTANTS.hartree_to_ev  # ECONS, eV
+                    raw_trajectory['energy_constant_motion'] = matrix[:, 8] * CONSTANTS.hartree_to_ev  # ECONT, eV
+                    raw_trajectory['volume'] = matrix[:, 9] * (CONSTANTS.bohr_to_ang**3)  # volume, angstrom^3
                     raw_trajectory['pressure'] = matrix[:, 10]  # out_press, GPa
                 else:
                     #print "Old version"
                     raw_trajectory['steps'] = numpy.array(matrix[:, 0], dtype=int)
-                    raw_trajectory['electronic_kinetic_energy'] = matrix[:, 1] * hartree_to_ev  # EKINC, eV
+                    raw_trajectory['electronic_kinetic_energy'] = matrix[:, 1] * CONSTANTS.hartree_to_ev  # EKINC, eV
                     raw_trajectory['cell_temperature'] = matrix[:, 2]  # TEMPH, K
                     raw_trajectory['ionic_temperature'] = matrix[:, 3]  # TEMPP, K
-                    raw_trajectory['scf_total_energy'] = matrix[:, 4] * hartree_to_ev  # ETOT, eV
-                    raw_trajectory['enthalpy'] = matrix[:, 5] * hartree_to_ev  # ENTHAL, eV
-                    raw_trajectory['enthalpy_plus_kinetic'] = matrix[:, 6] * hartree_to_ev  # ECONS, eV
-                    raw_trajectory['energy_constant_motion'] = matrix[:, 7] * hartree_to_ev  # ECONT, eV
-                    raw_trajectory['volume'] = matrix[:, 8] * (bohr_to_ang**3)  # volume, angstrom^3
+                    raw_trajectory['scf_total_energy'] = matrix[:, 4] * CONSTANTS.hartree_to_ev  # ETOT, eV
+                    raw_trajectory['enthalpy'] = matrix[:, 5] * CONSTANTS.hartree_to_ev  # ENTHAL, eV
+                    raw_trajectory['enthalpy_plus_kinetic'] = matrix[:, 6] * CONSTANTS.hartree_to_ev  # ECONS, eV
+                    raw_trajectory['energy_constant_motion'] = matrix[:, 7] * CONSTANTS.hartree_to_ev  # ECONT, eV
+                    raw_trajectory['volume'] = matrix[:, 8] * (CONSTANTS.bohr_to_ang**3)  # volume, angstrom^3
                     raw_trajectory['pressure'] = matrix[:, 9]  # out_press, GPa
                     raw_trajectory['times'] = matrix[:, 10]  # TPS, ps
 

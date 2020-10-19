@@ -7,7 +7,8 @@ from aiida_quantumespresso.parsers.parse_xml.legacy import xml_card_cell, xml_ca
     parse_xml_child_bool, parse_xml_child_integer, parse_xml_child_float, xml_card_planewaves, xml_card_spin, \
     parse_xml_child_attribute_str, xml_card_symmetries, xml_card_exchangecorrelation
 from aiida_quantumespresso.utils.mapping import get_logging_container
-from qe_tools.constants import hartree_to_ev
+
+from qe_tools import CONSTANTS
 
 units_suffix = '_units'
 default_energy_units = 'eV'
@@ -97,8 +98,8 @@ def parse_pw_xml_pre_6_2(xml_file, dir_with_bands):
     attrname = 'UNITS'
     metric = parse_xml_child_attribute_str(tagname, attrname, target_tags)
     if metric not in ['2 pi / a']:
-        raise QEOutputParsingError('Error parsing attribute {},'.format(attrname) + \
-                ' tag {} inside {}, units unknown'.format(tagname, target_tags.tagName) )
+        raise QEOutputParsingError(f'Error parsing attribute {attrname},' + \
+                f' tag {tagname} inside {target_tags.tagName}, units unknown' )
     k_points_units = metric
 
     for tagname, param in [['MONKHORST_PACK_GRID', 'nk'], ['MONKHORST_PACK_OFFSET', 'k']]:
@@ -119,7 +120,7 @@ def parse_pw_xml_pre_6_2(xml_file, dir_with_bands):
     try:
         import numpy
         for i in range(parsed_data['number_of_k_points']):
-            tagname = '{}{}'.format(tagname_prefix, i + 1)
+            tagname = f'{tagname_prefix}{i + 1}'
             #a = target_tags.getElementsByTagName(tagname)[0]
             a = a_dict[tagname]
             b = a.getAttribute('XYZ').replace('\n', '').rsplit()
@@ -134,7 +135,7 @@ def parse_pw_xml_pre_6_2(xml_file, dir_with_bands):
         parsed_data['k_points' + units_suffix] = default_k_points_units
         parsed_data['k_points_weights'] = kpoints_weights
     except Exception:
-        raise QEOutputParsingError('Error parsing tag K-POINT.{} inside {}.'.format(i + 1, target_tags.tagName))
+        raise QEOutputParsingError(f'Error parsing tag K-POINT.{i + 1} inside {target_tags.tagName}.')
 
     # I skip this card until someone will have a need for this.
 #     try:
@@ -193,9 +194,7 @@ def parse_pw_xml_pre_6_2(xml_file, dir_with_bands):
     attrname = 'UNITS'
     units = parse_xml_child_attribute_str(tagname, attrname, target_tags)
     if units not in ['hartree']:
-        raise QEOutputParsingError(
-            'Expected energy units in Hartree. Got instead {}'.format(parsed_data['energy_units'])
-        )
+        raise QEOutputParsingError(f"Expected energy units in Hartree. Got instead {parsed_data['energy_units']}")
 
     try:
         tagname = 'TWO_FERMI_ENERGIES'
@@ -206,16 +205,16 @@ def parse_pw_xml_pre_6_2(xml_file, dir_with_bands):
     if parsed_data.get('two_fermi_energies', False):
         tagname = 'FERMI_ENERGY_UP'
         parsed_data[tagname.replace('-','_').lower()] = \
-            parse_xml_child_float(tagname,target_tags) * hartree_to_ev
+            parse_xml_child_float(tagname,target_tags) * CONSTANTS.hartree_to_ev
         parsed_data[tagname.lower() + units_suffix] = default_energy_units
         tagname = 'FERMI_ENERGY_DOWN'
         parsed_data[tagname.replace('-','_').lower()] = \
-            parse_xml_child_float(tagname,target_tags) * hartree_to_ev
+            parse_xml_child_float(tagname,target_tags) * CONSTANTS.hartree_to_ev
         parsed_data[tagname.lower() + units_suffix] = default_energy_units
     else:
         tagname = 'FERMI_ENERGY'
         parsed_data[tagname.replace('-','_').lower()] = \
-            parse_xml_child_float(tagname,target_tags) * hartree_to_ev
+            parse_xml_child_float(tagname,target_tags) * CONSTANTS.hartree_to_ev
         parsed_data[tagname.lower() + units_suffix] = default_energy_units
 
     #CARD MAGNETIZATION_INIT
@@ -267,8 +266,8 @@ def parse_pw_xml_pre_6_2(xml_file, dir_with_bands):
         value = str(target_tags.getAttribute(attrname)).rstrip().replace('\n', '').lower()
         parsed_data[cardname.lower().rstrip().replace('-', '_')] = value
     except Exception:
-        raise QEOutputParsingError('Error parsing attribute {},'.format(attrname) + \
-                                   ' card {}.'.format(cardname))
+        raise QEOutputParsingError(f'Error parsing attribute {attrname},' + \
+                                   f' card {cardname}.')
 
     #CARD EIGENVALUES
     # Note: if this card is parsed, the dimension of the database grows very much!
@@ -299,12 +298,12 @@ def parse_pw_xml_pre_6_2(xml_file, dir_with_bands):
                     metric = str(a.getAttribute(attrname))
                     if metric not in ['Hartree']:
                         raise QEOutputParsingError('Error parsing eigenvalues xml file, ' + \
-                                                   'units {} not implemented.'.format(metric))
+                                                   f'units {metric} not implemented.')
 
                     tagname = 'EIGENVALUES'
                     a = eig_dom.getElementsByTagName(tagname)[0]
                     b = a.childNodes[0]
-                    value_e = [float(s) * hartree_to_ev for s in b.data.split()]
+                    value_e = [float(s) * CONSTANTS.hartree_to_ev for s in b.data.split()]
 
                     tagname = 'OCCUPATIONS'
                     a = eig_dom.getElementsByTagName(tagname)[0]
@@ -354,9 +353,7 @@ def parse_pw_xml_pre_6_2(xml_file, dir_with_bands):
             bands_dict['bands'] = bands
             bands_dict['bands' + units_suffix] = default_energy_units
         except Exception as exception:
-            raise QEOutputParsingError(
-                'Error parsing card {}: {} {}'.format(tagname, exception.__class__.__name__, exception)
-            )
+            raise QEOutputParsingError(f'Error parsing card {tagname}: {exception.__class__.__name__} {exception}')
 
 
 #     if dir_with_bands:

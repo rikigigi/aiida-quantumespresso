@@ -9,15 +9,24 @@ repos:
     -   id: trailing-whitespace
         exclude: >-
             (?x)^(
-                tests/.*.in$|
-                tests/parsers/fixtures/cp/.*
+                tests/parsers/fixtures/cp/.*|
+                tests/.*.*out|
+                tests/.*.in$
             )$
 
--   repo: https://github.com/PyCQA/pylint
-    rev: pylint-2.5.2
+-   repo: https://github.com/ikamensh/flynt/
+    rev: '0.55'
     hooks:
-    -   id: pylint
-        language: system
+    -   id: flynt
+        args: [
+            '--line-length=120',
+            '--fail-on-change',
+        ]
+
+-   repo: https://github.com/PyCQA/pydocstyle
+    rev: 5.0.2
+    hooks:
+    -   id: pydocstyle
         exclude: &exclude_files >
             (?x)^(
                 aiida_quantumespresso/calculations/pwimmigrant.*|
@@ -25,12 +34,6 @@ repos:
                 docs/.*|
                 tests/.*(?<!\.py)$
             )$
-
--   repo: https://github.com/PyCQA/pydocstyle
-    rev: 5.0.2
-    hooks:
-    -   id: pydocstyle
-        exclude: *exclude_files
         args: ['--ignore=D104,D202,D203,D213']
 
 -   repo: https://github.com/pre-commit/mirrors-yapf
@@ -44,6 +47,13 @@ repos:
                 (?x)^(
                     tests/parsers/fixtures/cp/.*
                 )$
+
+-   repo: https://github.com/PyCQA/pylint
+    rev: pylint-2.6.0
+    hooks:
+    -   id: pylint
+        language: system
+        exclude: *exclude_files
 
 -   repo: local
     hooks:

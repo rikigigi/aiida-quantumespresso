@@ -86,7 +86,7 @@ class EpwCalculation(CalcJob):
         parent_calc_nscf = parent_folder_nscf.creator
 
         if parent_calc_nscf is None:
-            raise exceptions.NotExistent('parent_folder<{}> has no parent calculation'.format(parent_folder_nscf.pk))
+            raise exceptions.NotExistent(f'parent_folder<{parent_folder_nscf.pk}> has no parent calculation')
 
         # Also, the parent calculation must be on the same computer
         if not self.node.computer.uuid == parent_calc_nscf.computer.uuid:
@@ -125,8 +125,8 @@ class EpwCalculation(CalcJob):
             parameters['INPUTEPW']['nq2'] = mesh[1]
             parameters['INPUTEPW']['nq3'] = mesh[2]
             postpend_text = None
-        except:
-            raise exceptions.InputValidationError('Cannot get the coarse q-point grid')
+        except NotImplementedError as exception:
+            raise exceptions.InputValidationError('Cannot get the coarse q-point grid') from exception
 
         try:
             mesh, offset = self.inputs.kpoints.get_kpoints_mesh()
@@ -135,8 +135,8 @@ class EpwCalculation(CalcJob):
             parameters['INPUTEPW']['nk2'] = mesh[1]
             parameters['INPUTEPW']['nk3'] = mesh[2]
             postpend_text = None
-        except:
-            raise exceptions.InputValidationError('Cannot get the coarse k-point grid')
+        except NotImplementedError as exception:
+            raise exceptions.InputValidationError('Cannot get the coarse k-point grid') from exception
 
         try:
             mesh, offset = self.inputs.qfpoints.get_kpoints_mesh()
@@ -145,8 +145,8 @@ class EpwCalculation(CalcJob):
             parameters['INPUTEPW']['nqf2'] = mesh[1]
             parameters['INPUTEPW']['nqf3'] = mesh[2]
             postpend_text = None
-        except:
-            raise exceptions.InputValidationError('Cannot get the fine q-point grid')
+        except NotImplementedError as exception:
+            raise exceptions.InputValidationError('Cannot get the fine q-point grid') from exception
 
         try:
             mesh, offset = self.inputs.kfpoints.get_kpoints_mesh()
@@ -155,8 +155,8 @@ class EpwCalculation(CalcJob):
             parameters['INPUTEPW']['nkf2'] = mesh[1]
             parameters['INPUTEPW']['nkf3'] = mesh[2]
             postpend_text = None
-        except:
-            raise exceptions.InputValidationError('Cannot get the fine k-point grid')
+        except NotImplementedError as exception:
+            raise exceptions.InputValidationError('Cannot get the fine k-point grid') from exception
 
 
         # customized namelists, otherwise not present in the distributed epw code
@@ -188,13 +188,13 @@ class EpwCalculation(CalcJob):
 
         # add here the list of point coordinates
         if len(list_of_points) > 1:
-            postpend_text = '{} cartesian\n'.format(len(list_of_points))
+            postpend_text = f'{len(list_of_points)} cartesian\n'
             for points in list_of_points:
                 postpend_text += '{0:18.10f} {1:18.10f} {2:18.10f} \n'.format(*points)
 
         with folder.open(self.metadata.options.input_filename, 'w') as infile:
             for namelist_name in namelists_toprint:
-                infile.write('&{0}\n'.format(namelist_name))
+                infile.write(f'&{namelist_name}\n')
                 # namelist content; set to {} if not present, so that we leave an empty namelist
                 namelist = parameters.pop(namelist_name, {})
                 for key, value in sorted(namelist.items()):
@@ -282,6 +282,6 @@ class EpwCalculation(CalcJob):
 
         if settings:
             unknown_keys = ', '.join(list(settings.keys()))
-            raise exceptions.InputValidationError('`settings` contained unexpected keys: {}'.format(unknown_keys))
+            raise exceptions.InputValidationError(f'`settings` contained unexpected keys: {unknown_keys}')
 
         return calcinfo

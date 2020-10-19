@@ -49,18 +49,18 @@ def parse_cp_traj_stanzas(num_elements, splitlines, prepend_name, rescale=1.):
                     stanzas.append(this_stanza)
                     this_stanza = []
             else:
-                raise ValueError('Wrong line length ({})'.format(len(l)))
+                raise ValueError(f'Wrong line length ({len(l)})')
         if len(this_stanza) != 0:
-            raise ValueError('Wrong length of last block ({} lines instead of 0).'.format(len(this_stanza)))
+            raise ValueError(f'Wrong length of last block ({len(this_stanza)} lines instead of 0).')
         if len(steps) != len(stanzas):
             raise ValueError('Length mismatch between number of steps and number of defined stanzas.')
         return {
-            '{}_steps'.format(prepend_name): steps,
-            '{}_times'.format(prepend_name): times,
-            '{}_data'.format(prepend_name): stanzas,
+            f'{prepend_name}_steps': steps,
+            f'{prepend_name}_times': times,
+            f'{prepend_name}_data': stanzas,
         }
     except Exception as e:
-        e.message = 'At line {}: {}'.format(linenum + 1, e)
+        e.message = f'At line {linenum + 1}: {e}'
         raise e
 
 
@@ -194,22 +194,18 @@ def parse_cp_raw_output(out_file, xml_file=None, xml_counter_file=None, print_co
             xml_counter_data = parse_cp_xml_counter_output(xml_counter_file.read())
         else:
             xml_counter_data = parse_cp_counter_output(xml_counter_file.read())
-    else:
-        xml_counter_data = {}
 
-    # analyze the standard output
-    out_lines = out_file.readlines()
-
+    stdout = stdout.split('\n')
     # understand if the job ended smoothly
-    job_successful = any('JOB DONE' in line for line in reversed(out_lines))
+    job_successful = any('JOB DONE' in line for line in reversed(stdout))
 
-    out_data = parse_cp_text_output(out_lines, xml_data)
+    out_data = parse_cp_text_output(stdout, xml_data)
 
     for key in out_data.keys():
         if key in list(xml_data.keys()):
-            raise AssertionError('%s found in both dictionaries' % key)
+            raise AssertionError(f'{key} found in both dictionaries')
         if key in list(xml_counter_data.keys()):
-            raise AssertionError('%s found in both dictionaries' % key)
+            raise AssertionError(f'{key} found in both dictionaries')
         # out_data keys take precedence and overwrite xml_data keys,
         # if the same key name is shared by both (but this should not happen!)
 

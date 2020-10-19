@@ -6,7 +6,7 @@ without aiida and will return a dictionary with parsed keys.
 """
 import numpy
 
-from qe_tools.constants import *
+from qe_tools import CONSTANTS
 
 from aiida_quantumespresso.parsers import QEOutputParsingError, get_parser_info
 from aiida_quantumespresso.parsers.parse_raw.base import convert_qe_time_to_sec
@@ -67,15 +67,15 @@ def parse_raw_ph_output(stdout, tensors=None, dynamical_matrices=None):
             this_dynmat_data = parse_ph_dynmat(lines, logs)
 
             # join it with the previous dynmat info
-            dynmat_data['dynamical_matrix_%s' % dynmat_counter] = this_dynmat_data
+            dynmat_data[f'dynamical_matrix_{dynmat_counter}'] = this_dynmat_data
             # TODO: use the bands format?
 
     # join dictionaries, there should not be any twice repeated key
     for key in out_data.keys():
         if key in list(tensor_data.keys()):
-            raise AssertionError('{} found in two dictionaries'.format(key))
+            raise AssertionError(f'{key} found in two dictionaries')
         if key in list(dynmat_data.keys()):
-            raise AssertionError('{} found in two dictionaries'.format(key))
+            raise AssertionError(f'{key} found in two dictionaries')
 
     # I don't check the dynmat_data and parser_info keys
     parsed_data = dict(
@@ -282,7 +282,7 @@ def parse_ph_dynmat(data, logs, lattice_parameter=None, also_eigenvectors=False,
                 header_dict['ibrav'] = int(pieces[2])
                 header_dict['celldm'] = [float(i) for i in pieces[3:]]
                 # In angstrom
-                alat = header_dict['celldm'][0] * bohr_to_ang
+                alat = header_dict['celldm'][0] * CONSTANTS.bohr_to_ang
                 if abs(alat) < 1.e-5:
                     raise QEOutputParsingError(
                         'Lattice constant=0! Probably you are using an '
@@ -318,7 +318,7 @@ def parse_ph_dynmat(data, logs, lattice_parameter=None, also_eigenvectors=False,
                 try:
                     if int(pieces[0]) != idx:
                         raise QEOutputParsingError('Error with the indices of the species')
-                    species.append([pieces[1].strip(), float(pieces[2]) / amu_Ry])
+                    species.append([pieces[1].strip(), float(pieces[2]) / CONSTANTS.amu_Ry])
                 except ValueError:
                     raise QEOutputParsingError('Error parsing the species')
 
@@ -332,21 +332,14 @@ def parse_ph_dynmat(data, logs, lattice_parameter=None, also_eigenvectors=False,
                 pieces = atom_line.split()
                 if len(pieces) != 5:
                     raise QEOutputParsingError(
-                        'Wrong # of elements for one of the atoms: {}, '
-                        'line {}: {}'.format(len(pieces), starting_line + idx, pieces)
+                        f'Wrong # of elements for one of the atoms: {len(pieces)}, line {starting_line + idx}: {pieces}'
                     )
                 try:
                     if int(pieces[0]) != idx:
-                        raise QEOutputParsingError(
-                            'Error with the indices of the atoms: '
-                            '{} vs {}'.format(int(pieces[0]), idx)
-                        )
+                        raise QEOutputParsingError(f'Error with the indices of the atoms: {int(pieces[0])} vs {idx}')
                     sp_idx = int(pieces[1])
                     if sp_idx > len(species):
-                        raise QEOutputParsingError(
-                            'Wrong index for the species: '
-                            '{}, but max={}'.format(sp_idx, len(species))
-                        )
+                        raise QEOutputParsingError(f'Wrong index for the species: {sp_idx}, but max={len(species)}')
                     atoms_labels.append(species[sp_idx - 1][0])
                     atoms_coords.append([float(pieces[2]) * alat, float(pieces[3]) * alat, float(pieces[4]) * alat])
                 except ValueError:

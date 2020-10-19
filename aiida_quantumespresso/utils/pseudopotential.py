@@ -38,9 +38,9 @@ def validate_and_prepare_pseudos_inputs(structure, pseudos=None, pseudo_family=N
 
     for kind in structure.get_kind_names():
         if kind not in pseudos:
-            raise ValueError('no pseudo available for element {}'.format(kind))
+            raise ValueError(f'no pseudo available for element {kind}')
         elif not isinstance(pseudos[kind], UpfData):
-            raise ValueError('pseudo for element {} is not of type UpfData'.format(kind))
+            raise ValueError(f'pseudo for element {kind} is not of type UpfData')
 
     return pseudos
 
@@ -94,21 +94,20 @@ def get_pseudos_from_dict(structure, pseudos_uuids):
         symbol = kind.symbol
         try:
             uuid = pseudos_uuids[symbol]
-        except KeyError:
-            raise NotExistent('No UPF for element {} found in the provided pseudos_uuids dictionary'.format(symbol))
+        except KeyError as exception:
+            msg = f'No UPF for element {symbol} found in the provided pseudos_uuids dictionary'
+            raise NotExistent(msg) from exception
         try:
             upf = load_node(uuid)
-        except NotExistent:
+        except NotExistent as exception:
             raise NotExistent(
                 'No node found associated to the UUID {} given for element {} '
                 'in the provided pseudos_uuids dictionary'.format(uuid, symbol)
-            )
+            ) from exception
         if not isinstance(upf, UpfData):
-            raise ValueError('Node with UUID {} is not a UpfData'.format(uuid))
+            raise ValueError(f'Node with UUID {uuid} is not a UpfData')
         if upf.element != symbol:
-            raise ValueError(
-                'Node<{}> is associated to element {} and not to {} as expected'.format(uuid, upf.element, symbol)
-            )
+            raise ValueError(f'Node<{uuid}> is associated to element {upf.element} and not to {symbol} as expected')
 
         pseudo_list[kind.name] = upf
 

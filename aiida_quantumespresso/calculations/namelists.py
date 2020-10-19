@@ -122,7 +122,7 @@ class NamelistsCalculation(CalcJob):
 
         file_lines = []
         for namelist_name, namelist in parameters.items():
-            file_lines.append('&{0}'.format(namelist_name))
+            file_lines.append(f'&{namelist_name}')
             for key, value in sorted(namelist.items()):
                 file_lines.append(convert_input_to_namelist_entry(key, value)[:-1])
             file_lines.append('/')
@@ -172,15 +172,20 @@ class NamelistsCalculation(CalcJob):
         with folder.open(input_filename, 'w') as infile:
             infile.write(file_content)
 
+        symlink = settings.pop('PARENT_FOLDER_SYMLINK', False)
+
         remote_copy_list = []
         local_copy_list = []
+        remote_symlink_list = []
+
+        ptr = remote_symlink_list if symlink else remote_copy_list
 
         # copy remote output dir, if specified
         parent_calc_folder = self.inputs.get('parent_folder', None)
         if parent_calc_folder is not None:
             if isinstance(parent_calc_folder, RemoteData):
                 parent_calc_out_subfolder = settings.pop('PARENT_CALC_OUT_SUBFOLDER', self._INPUT_SUBFOLDER)
-                remote_copy_list.append((
+                ptr.append((
                     parent_calc_folder.computer.uuid,
                     os.path.join(parent_calc_folder.get_remote_path(), parent_calc_out_subfolder),
                     self._OUTPUT_SUBFOLDER
@@ -209,6 +214,7 @@ class NamelistsCalculation(CalcJob):
         calcinfo.codes_info = [codeinfo]
         calcinfo.local_copy_list = local_copy_list
         calcinfo.remote_copy_list = remote_copy_list
+        calcinfo.remote_symlink_list = remote_symlink_list
 
         # Retrieve by default the output file and the xml file
         calcinfo.retrieve_list = []
@@ -224,6 +230,6 @@ class NamelistsCalculation(CalcJob):
 
         if settings:
             unknown_keys = ', '.join(list(settings.keys()))
-            raise exceptions.InputValidationError('`settings` contained unexpected keys: {}'.format(unknown_keys))
+            raise exceptions.InputValidationError(f'`settings` contained unexpected keys: {unknown_keys}')
 
         return calcinfo

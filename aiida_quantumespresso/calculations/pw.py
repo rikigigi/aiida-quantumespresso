@@ -27,7 +27,6 @@ class PwCalculation(BasePwCpInputGenerator):
         ('CONTROL', 'pseudo_dir'),
         ('CONTROL', 'outdir'),
         ('CONTROL', 'prefix'),
-        ('SYSTEM', 'ibrav'),
         ('SYSTEM', 'celldm'),
         ('SYSTEM', 'nat'),
         ('SYSTEM', 'ntyp'),
@@ -51,7 +50,7 @@ class PwCalculation(BasePwCpInputGenerator):
         filepaths = []
 
         for filename in cls.xml_filenames:
-            filepath = os.path.join(cls._OUTPUT_SUBFOLDER, '{}.save'.format(cls._PREFIX), filename)
+            filepath = os.path.join(cls._OUTPUT_SUBFOLDER, f'{cls._PREFIX}.save', filename)
             filepaths.append(filepath)
 
         return filepaths
@@ -80,8 +79,6 @@ class PwCalculation(BasePwCpInputGenerator):
         spec.default_output_node = 'output_parameters'
 
         # Unrecoverable errors: required retrieved files could not be read, parsed or are otherwise incomplete
-        spec.exit_code(300, 'ERROR_NO_RETRIEVED_FOLDER',
-            message='The retrieved folder data node could not be accessed.')
         spec.exit_code(301, 'ERROR_NO_RETRIEVED_TEMPORARY_FOLDER',
             message='The retrieved temporary folder could not be accessed.')
         spec.exit_code(302, 'ERROR_OUTPUT_STDOUT_MISSING',
@@ -157,8 +154,10 @@ class PwCalculation(BasePwCpInputGenerator):
         # pylint: disable=no-self-argument,no-self-use
         try:
             HpCalculation = factories.CalculationFactory('quantumespresso.hp')
-        except Exception:
-            raise RuntimeError('this is determined by the aiida-quantumespresso-hp plugin but it is not installed')
+        except Exception as exc:
+            raise RuntimeError(
+                'this is determined by the aiida-quantumespresso-hp plugin but it is not installed'
+            ) from exc
 
         return HpCalculation.input_file_name_hubbard_file
 

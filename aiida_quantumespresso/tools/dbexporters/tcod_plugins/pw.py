@@ -6,8 +6,8 @@ from aiida.orm.nodes.data.upf import UpfData
 
 try:
     from aiida_tcod.tools.dbexporters.tcod import BaseTcodtranslator  # pylint: disable=import-error
-except ImportError:
-    raise ImportError('dependency `aiida-tcod` not installed; run `pip install aiida-tcod` to do so.')
+except ImportError as exception:
+    raise ImportError('dependency `aiida-tcod` not installed; run `pip install aiida-tcod` to do so.') from exception
 
 
 class PwTcodtranslator(BaseTcodtranslator):
@@ -56,7 +56,7 @@ class PwTcodtranslator(BaseTcodtranslator):
         if energy_type not in parameters.attrs():
             return None
         if energy_type + '_units' not in parameters.attrs():
-            raise ValueError('energy units for {} are unknown'.format(energy_type))
+            raise ValueError(f'energy units for {energy_type} are unknown')
         if parameters.get_attr(energy_type + '_units') != 'eV':
             raise ValueError(
                 'energy units for {} are {} instead of eV -- unit conversion is not possible yet'.format(
@@ -260,7 +260,7 @@ class PwTcodtranslator(BaseTcodtranslator):
     @classmethod
     def get_kinetic_energy_cutoff_wavefunctions(cls, calc, **kwargs):  # pylint: disable=invalid-name,unused-argument
         """Return kinetic energy cutoff for wavefunctions in eV."""
-        from qe_tools.constants import ry_to_ev
+        from qe_tools import CONSTANTS
         parameters = calc.inputs.parameters
         ecutwfc = None
         try:
@@ -269,7 +269,7 @@ class PwTcodtranslator(BaseTcodtranslator):
             pass
         if ecutwfc is None:
             return None
-        return ecutwfc * ry_to_ev
+        return ecutwfc * CONSTANTS.ry_to_ev
 
     @classmethod
     def get_kinetic_energy_cutoff_charge_density(cls, calc, **kwargs):  # pylint: disable=invalid-name,unused-argument
@@ -278,10 +278,10 @@ class PwTcodtranslator(BaseTcodtranslator):
         .. note :: by default returns 4 * ecutwfc, as indicated in
             http://www.quantum-espresso.org/wp-content/uploads/Doc/INPUT_PW.html
         """
-        from qe_tools.constants import ry_to_ev
+        from qe_tools import CONSTANTS
         parameters = calc.inputs.parameters
         try:
-            return parameters.get_dict()['SYSTEM']['ecutrho'] * ry_to_ev
+            return parameters.get_dict()['SYSTEM']['ecutrho'] * CONSTANTS.ry_to_ev
         except KeyError:
             pass
         ecutwfc = cls.get_kinetic_energy_cutoff_wavefunctions(calc)
@@ -296,10 +296,10 @@ class PwTcodtranslator(BaseTcodtranslator):
         .. note :: by default returns ecutrho, as indicated in
             http://www.quantum-espresso.org/wp-content/uploads/Doc/INPUT_PW.html
         """
-        from qe_tools.constants import ry_to_ev
+        from qe_tools import CONSTANTS
         parameters = calc.inputs.parameters
         try:
-            return parameters.get_dict()['SYSTEM']['ecutfock'] * ry_to_ev
+            return parameters.get_dict()['SYSTEM']['ecutfock'] * CONSTANTS.ry_to_ev
         except KeyError:
             pass
         return cls.get_kinetic_energy_cutoff_charge_density(calc)

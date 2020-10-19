@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 from aiida import orm
-from aiida.common import exceptions
-from qe_tools.constants import invcm_to_THz
+from qe_tools import CONSTANTS
 
 from aiida_quantumespresso.calculations.matdyn import MatdynCalculation
 from .base import Parser
@@ -12,21 +11,17 @@ class MatdynParser(Parser):
 
     def parse(self, **kwargs):
         """Parse the retrieved files from a `MatdynCalculation`."""
-        try:
-            output_folder = self.retrieved
-        except exceptions.NotExistent:
-            return self.exit(self.exit_codes.ERROR_NO_RETRIEVED_FOLDER)
-
+        retrieved = self.retrieved
         filename_stdout = self.node.get_option('output_filename')
         filename_frequencies = MatdynCalculation._PHONON_FREQUENCIES_NAME
 
-        if filename_stdout not in output_folder.list_object_names():
+        if filename_stdout not in retrieved.list_object_names():
             return self.exit(self.exit_codes.ERROR_OUTPUT_STDOUT_READ)
 
-        if 'JOB DONE' not in output_folder.get_object_content(filename_stdout):
+        if 'JOB DONE' not in retrieved.get_object_content(filename_stdout):
             return self.exit(self.exit_codes.ERROR_OUTPUT_STDOUT_INCOMPLETE)
 
-        if filename_frequencies not in output_folder.list_object_names():
+        if filename_frequencies not in retrieved.list_object_names():
             return self.exit(self.exit_codes.ERROR_OUTPUT_STDOUT_READ)
 
         # Extract the kpoints from the input data and create the `KpointsData` for the `BandsData`
@@ -38,7 +33,7 @@ class MatdynParser(Parser):
             kpoints_for_bands = orm.KpointsData()
             kpoints_for_bands.set_kpoints(kpoints)
 
-        parsed_data = parse_raw_matdyn_phonon_file(output_folder.get_object_content(filename_frequencies))
+        parsed_data = parse_raw_matdyn_phonon_file(retrieved.get_object_content(filename_frequencies))
 
         try:
             num_kpoints = parsed_data.pop('num_kpoints')
@@ -114,7 +109,7 @@ def parse_raw_matdyn_phonon_file(phonon_frequencies):
     for i in range(num_kpoints):
         for j in range(num_bands):
             try:
-                freq_matrix[i, j] = corrected_data[counter] * invcm_to_THz  # from cm-1 to THz
+                freq_matrix[i, j] = corrected_data[counter] * CONSTANTS.invcm_to_THz  # from cm-1 to THz
             except ValueError:
                 parsed_data['warnings'].append('Error while parsing the frequencies')
             except IndexError:

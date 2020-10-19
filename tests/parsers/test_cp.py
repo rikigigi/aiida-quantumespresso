@@ -12,8 +12,8 @@ import numpy
 #Now I use a post-6.5 git version (order of atom in the output changed)
 @pytest.mark.parametrize('version', ['default', '6.5_autopilot', '6.5', '6.5_cgstep', '6.5_cgsteps'])
 def test_cp_default(
-    aiida_profile, fixture_localhost, generate_calc_job_node, generate_parser, data_regression, generate_structure,
-    version, call_something
+    fixture_localhost, generate_calc_job_node, generate_parser, data_regression, generate_structure, version,
+    call_something
 ):
     """Test a default `cp.x` calculation."""
     entry_point_calc_job = 'quantumespresso.cp'

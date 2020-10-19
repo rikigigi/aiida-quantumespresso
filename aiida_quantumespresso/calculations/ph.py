@@ -59,8 +59,6 @@ class PhCalculation(CalcJob):
         spec.default_output_node = 'output_parameters'
 
         # Unrecoverable errors: required retrieved files could not be read, parsed or are otherwise incomplete
-        spec.exit_code(300, 'ERROR_NO_RETRIEVED_FOLDER',
-            message='The retrieved folder data node could not be accessed.')
         spec.exit_code(302, 'ERROR_OUTPUT_STDOUT_MISSING',
             message='The retrieved folder did not contain the required stdout output file.')
         spec.exit_code(305, 'ERROR_OUTPUT_FILES',
@@ -104,10 +102,10 @@ class PhCalculation(CalcJob):
         parent_calcs = parent_folder.get_incoming(node_class=orm.CalcJobNode).all()
 
         if not parent_calcs:
-            raise exceptions.NotExistent('parent_folder<{}> has no parent calculation'.format(parent_folder.pk))
+            raise exceptions.NotExistent(f'parent_folder<{parent_folder.pk}> has no parent calculation')
         elif len(parent_calcs) > 1:
             raise exceptions.UniquenessError(
-                'parent_folder<{}> has multiple parent calculations'.format(parent_folder.pk))
+                f'parent_folder<{parent_folder.pk}> has multiple parent calculations')
 
         parent_calc = parent_calcs[0].node
 
@@ -126,8 +124,9 @@ class PhCalculation(CalcJob):
         except AttributeError:
             try:
                 default_parent_output_folder = parent_calc._get_output_folder()  # pylint: disable=protected-access
-            except AttributeError:
-                raise exceptions.InputValidationError('parent calculation does not have a default output subfolder')
+            except AttributeError as exception:
+                msg = 'parent calculation does not have a default output subfolder'
+                raise exceptions.InputValidationError(msg) from exception
         parent_calc_out_subfolder = settings.pop('PARENT_CALC_OUT_SUBFOLDER', default_parent_output_folder)
 
         # I put the first-level keys as uppercase (i.e., namelist and card names) and the second-level keys as lowercase
@@ -147,7 +146,7 @@ class PhCalculation(CalcJob):
             if namelist in parameters:
                 if flag in parameters[namelist]:
                     raise exceptions.InputValidationError(
-                        "Cannot specify explicitly the '{}' flag in the '{}' namelist or card.".format(flag, namelist))
+                        f"Cannot specify explicitly the '{flag}' flag in the '{namelist}' namelist or card.")
 
         if 'INPUTPH' not in parameters:
             raise exceptions.InputValidationError('required namelist INPUTPH not specified')
@@ -186,9 +185,10 @@ class PhCalculation(CalcJob):
             # this is the case where no mesh was set. Maybe it's a list
             try:
                 list_of_points = self.inputs.qpoints.get_kpoints(cartesian=True)
-            except AttributeError:
+            except AttributeError as exception:
                 # In this case, there are no info on the qpoints at all
-                raise exceptions.InputValidationError('Input `qpoints` contains neither a mesh nor a list of points')
+                msg = 'Input `qpoints` contains neither a mesh nor a list of points'
+                raise exceptions.InputValidationError(msg) from exception
 
             # change to 2pi/a coordinates
             lattice_parameter = numpy.linalg.norm(self.inputs.qpoints.cell[0])
@@ -198,7 +198,7 @@ class PhCalculation(CalcJob):
             if len(list_of_points) > 1:
                 parameters['INPUTPH']['qplot'] = True
                 parameters['INPUTPH']['ldisp'] = True
-                postpend_text = '{}\n'.format(len(list_of_points))
+                postpend_text = f'{len(list_of_points)}\n'
                 for points in list_of_points:
                     postpend_text += '{0:18.10f} {1:18.10f} {2:18.10f}  1\n'.format(*points)
 
@@ -227,7 +227,7 @@ class PhCalculation(CalcJob):
 
         with folder.open(self.metadata.options.input_filename, 'w') as infile:
             for namelist_name in namelists_toprint:
-                infile.write('&{0}\n'.format(namelist_name))
+                infile.write(f'&{namelist_name}\n')
                 # namelist content; set to {} if not present, so that we leave an empty namelist
                 namelist = parameters.pop(namelist_name, {})
                 for key, value in sorted(namelist.items()):
@@ -297,7 +297,7 @@ class PhCalculation(CalcJob):
 
         # Create an `.EXIT` file if `only_initialization` flag in `settings` is set to `True`
         if settings.pop('ONLY_INITIALIZATION', False):
-            with folder.open('{}.EXIT'.format(self._PREFIX), 'w') as handle:
+            with folder.open(f'{self._PREFIX}.EXIT', 'w') as handle:
                 handle.write('\n')
 
                 remote_copy_list.append((
@@ -319,7 +319,7 @@ class PhCalculation(CalcJob):
         calcinfo.remote_symlink_list = remote_symlink_list
 
         # Retrieve by default the output file and the xml file
-        filepath_xml_tensor = os.path.join(self._OUTPUT_SUBFOLDER, '_ph0', '{}.phsave'.format(self._PREFIX))
+        filepath_xml_tensor = os.path.join(self._OUTPUT_SUBFOLDER, '_ph0', f'{self._PREFIX}.phsave')
         calcinfo.retrieve_list = []
         calcinfo.retrieve_list.append(self.metadata.options.output_filename)
         calcinfo.retrieve_list.append(self._FOLDER_DYNAMICAL_MATRIX)
@@ -328,7 +328,7 @@ class PhCalculation(CalcJob):
 
         if settings:
             unknown_keys = ', '.join(list(settings.keys()))
-            raise exceptions.InputValidationError('`settings` contained unexpected keys: {}'.format(unknown_keys))
+            raise exceptions.InputValidationError(f'`settings` contained unexpected keys: {unknown_keys}')
 
         return calcinfo
 

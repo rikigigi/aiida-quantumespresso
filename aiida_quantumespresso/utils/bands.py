@@ -33,12 +33,12 @@ def get_highest_occupied_band(bands, threshold=0.005):
     from aiida.orm import BandsData
 
     if not isinstance(bands, BandsData):
-        raise ValueError('bands should be a `{}` node'.format(BandsData.__name__))
+        raise ValueError(f'bands should be a `{BandsData.__name__}` node')
 
     try:
         occupations = bands.get_array('occupations')
-    except KeyError:
-        raise ValueError('BandsData does not contain a `occupations` array')
+    except KeyError as exception:
+        raise ValueError('BandsData does not contain a `occupations` array') from exception
 
     lumo_indices = []
 

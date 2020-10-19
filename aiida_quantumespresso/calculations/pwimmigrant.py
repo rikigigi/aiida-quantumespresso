@@ -199,7 +199,7 @@ class PwimmigrantCalculation(PwCalculation):
             # Parse the input file.
             local_path = os.path.join(folder.abspath, self._INPUT_FILE_NAME)
             with open(local_path) as fin:
-                pwinputfile = pwinputparser.PwInputFile(fin)
+                pwinputfile = pwinputparser.PwInputFile(fin.read())
 
             # Determine PREFIX, if it hasn't already been set by the user.
             if self._PREFIX is None:
@@ -227,7 +227,7 @@ class PwimmigrantCalculation(PwCalculation):
             # Copy the pseudo files to the temp folder.
             for fnm in pwinputfile.atomic_species['pseudo_file_names']:
                 remote_path = os.path.join(
-                    self._get_remote_workdir(), self._OUTPUT_SUBFOLDER, '{}.save/'.format(self._PREFIX), fnm
+                    self._get_remote_workdir(), self._OUTPUT_SUBFOLDER, f'{self._PREFIX}.save/', fnm
                 )
                 open_transport.get(remote_path, folder.abspath)
 
