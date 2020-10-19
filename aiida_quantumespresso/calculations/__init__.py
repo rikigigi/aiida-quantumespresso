@@ -297,7 +297,6 @@ class BasePwCpInputGenerator(CalcJob):
         # Set some variables (look out at the case! NAMELISTS should be
         # uppercase, internal flag names must be lowercase)
         input_params.setdefault('SYSTEM', {})
-        input_params['SYSTEM']['ibrav'] = 0
         input_params['SYSTEM']['nat'] = len(structure.sites)
         input_params['SYSTEM']['ntyp'] = len(structure.kinds)
 
