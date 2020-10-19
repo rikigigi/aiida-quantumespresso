@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=redefined-outer-name
 """Tests for the `CpParser`."""
-#import pdb
 import pytest
 
 from aiida import orm
@@ -46,9 +45,6 @@ def test_cp_default(
     assert 'output_parameters' in results
     if version != '6.5_cgstep':
         assert 'output_trajectory' in results
-        if version == '6.5_autopilot':
-            pass
-            #pdb.set_trace()
         data_regression.check({
             'parameters':
             call_something(numpy.ndarray, 'tolist', results['output_parameters'].get_dict(), func=call_something),

@@ -33,7 +33,7 @@ def parse_cp_traj_stanzas(num_elements, splitlines, prepend_name, rescale=1.):
         for linenum, l in enumerate(splitlines):
             if len(l) == 2:
                 steps.append(int(l[0]))
-                if l[1] == '***********':
+                if set(l[1]) == {'*'}:
                     times.append(-1.0)
                 else:
                     times.append(float(l[1]))
