@@ -4,7 +4,7 @@ import numpy as np
 from urllib.error import URLError
 
 from xmlschema import XMLSchema
-from qe_tools.constants import hartree_to_ev, bohr_to_ang, ry_to_ev
+from qe_tools import CONSTANTS
 
 from aiida_quantumespresso.utils.mapping import get_logging_container
 
@@ -23,7 +23,7 @@ def parser_assert(condition, message, log_func=raise_parsing_error):
 
 def parser_assert_equal(val1, val2, message, log_func=raise_parsing_error):
     if not (val1 == val2):
-        msg = 'Violated assertion: {} == {}'.format(val1, val2)
+        msg = f'Violated assertion: {val1} == {val2}'
         if message:
             msg += ' - '
             msg += message
@@ -64,7 +64,7 @@ def parse_xml_post_6_2(xml, schema):
             xsd = XMLSchema(schema_filepath_default)
         except URLError:
             raise XMLParseError(
-                'Could not open or parse the XSD files {} and {}'.format(schema_filepath, schema_filepath_default)
+                f'Could not open or parse the XSD files {schema_filepath} and {schema_filepath_default}'
             )
         else:
             schema_filepath = schema_filepath_default
@@ -79,7 +79,7 @@ def parse_xml_post_6_2(xml, schema):
 
     xml_dictionary, errors = xsd.to_dict(xml, validation='lax')
     if errors:
-        logs.error.append('{} XML schema validation error(s) schema: {}:'.format(len(errors), schema_filepath))
+        logs.error.append(f'{len(errors)} XML schema validation error(s) schema: {schema_filepath}:')
         for err in errors:
             logs.error.append(str(err))
 
@@ -88,9 +88,9 @@ def parse_xml_post_6_2(xml, schema):
     outputs = xml_dictionary['output']
 
     lattice_vectors = [
-        [x * bohr_to_ang for x in outputs['atomic_structure']['cell']['a1']],
-        [x * bohr_to_ang for x in outputs['atomic_structure']['cell']['a2']],
-        [x * bohr_to_ang for x in outputs['atomic_structure']['cell']['a3']],
+        [x * CONSTANTS.bohr_to_ang for x in outputs['atomic_structure']['cell']['a1']],
+        [x * CONSTANTS.bohr_to_ang for x in outputs['atomic_structure']['cell']['a2']],
+        [x * CONSTANTS.bohr_to_ang for x in outputs['atomic_structure']['cell']['a3']],
     ]
 
     has_electric_field = inputs.get('electric_field', {}).get('electric_potential', None) == 'sawtooth_potential'
@@ -191,7 +191,7 @@ def parse_xml_post_6_2(xml, schema):
         elif symmetry_type == 'lattice_symmetry':
             lattice_symmetries.append(sym)
         else:
-            raise XMLParseError('Unexpected type of symmetry: {}'.format(symmetry_type))
+            raise XMLParseError(f'Unexpected type of symmetry: {symmetry_type}')
 
     if (nsym != len(symmetries)) or (nrot != len(symmetries) + len(lattice_symmetries)):
         logs.warning.append(
@@ -244,8 +244,8 @@ def parse_xml_post_6_2(xml, schema):
         inversion_symmetry,  # the old tag was INVERSION_SYMMETRY and was set to (from the code): "invsym    if true the system has inversion symmetry"
         'number_of_bravais_symmetries': nrot,  # lattice symmetries
         'number_of_symmetries': nsym,  # crystal symmetries
-        'wfc_cutoff': inputs.get('basis', {}).get('ecutwfc', -1.0) * hartree_to_ev,
-        'rho_cutoff': outputs['basis_set']['ecutrho'] * hartree_to_ev,  # not always printed in input->basis
+        'wfc_cutoff': inputs.get('basis', {}).get('ecutwfc', -1.0) * CONSTANTS.hartree_to_ev,
+        'rho_cutoff': outputs['basis_set']['ecutrho'] * CONSTANTS.hartree_to_ev,  # not always printed in input->basis
         'smooth_fft_grid': [value for _, value in sorted(outputs['basis_set']['fft_smooth'].items())],
         'dft_exchange_correlation': inputs.get('dft', {}).get('functional',
                                                               None),  # TODO: also parse optional elements of 'dft' tag
@@ -257,7 +257,7 @@ def parse_xml_post_6_2(xml, schema):
     # alat is technically an optional attribute according to the schema,
     # but I don't know what to do if it's missing. atomic_structure is mandatory.
     output_alat_bohr = outputs['atomic_structure']['@alat']
-    output_alat_angstrom = output_alat_bohr * bohr_to_ang
+    output_alat_angstrom = output_alat_bohr * CONSTANTS.bohr_to_ang
 
     # Band structure
     if 'band_structure' in outputs:
@@ -275,9 +275,9 @@ def parse_xml_post_6_2(xml, schema):
 
             # Versions below 19.03.04 (Quantum ESPRESSO<=6.4.1) incorrectly print degauss in Ry instead of Hartree
             if xml_version < StrictVersion('19.03.04'):
-                degauss *= ry_to_ev
+                degauss *= CONSTANTS.ry_to_ev
             else:
-                degauss *= hartree_to_ev
+                degauss *= CONSTANTS.hartree_to_ev
 
             xml_data['degauss'] = degauss
             xml_data['smearing_type'] = smearing_xml['$']
@@ -304,9 +304,7 @@ def parse_xml_post_6_2(xml, schema):
         else:
             spins = True
             if num_bands_up != num_bands_down:
-                raise XMLParseError(
-                    'different number of bands for spin channels: {} and {}'.format(num_bands_up, num_bands_down)
-                )
+                raise XMLParseError(f'different number of bands for spin channels: {num_bands_up} and {num_bands_down}')
 
             if num_bands is not None and num_bands != num_bands_up + num_bands_down:
                 raise XMLParseError(
@@ -340,7 +338,7 @@ def parse_xml_post_6_2(xml, schema):
                 band_occupations[0].append(ks_state['occupations']['$'][0:num_bands_up])
                 band_occupations[1].append(ks_state['occupations']['$'][num_bands_up:num_bands])
 
-        band_eigenvalues = np.array(band_eigenvalues) * hartree_to_ev
+        band_eigenvalues = np.array(band_eigenvalues) * CONSTANTS.hartree_to_ev
         band_occupations = np.array(band_occupations)
 
         if not spins:
@@ -370,7 +368,7 @@ def parse_xml_post_6_2(xml, schema):
                 xml_data[key] = value
 
         if 'fermi_energy' in band_structure:
-            xml_data['fermi_energy'] = band_structure['fermi_energy'] * hartree_to_ev
+            xml_data['fermi_energy'] = band_structure['fermi_energy'] * CONSTANTS.hartree_to_ev
 
         bands_dict = {
             'occupations': band_occupations,
@@ -458,7 +456,7 @@ def parse_xml_post_6_2(xml, schema):
         polarization_modulus = berry_phase['totalPolarization']['modulus']
         parser_assert(
             polarization_units in ['e/bohr^2', 'C/m^2'],
-            "Unsupported units '{}' of total polarization".format(polarization_units)
+            f"Unsupported units '{polarization_units}' of total polarization"
         )
         if polarization_units == 'e/bohr^2':
             polarization *= e_bohr2_to_coulomb_m2
@@ -480,7 +478,7 @@ def parse_xml_post_6_2(xml, schema):
         # - individual electronic phases and weights
 
     # TODO: We should put the `non_periodic_cell_correction` string in (?)
-    atoms = [[atom['@name'], [coord * bohr_to_ang
+    atoms = [[atom['@name'], [coord * CONSTANTS.bohr_to_ang
                               for coord in atom['$']]]
              for atom in outputs['atomic_structure']['atomic_positions']['atom']]
     species = outputs['atomic_species']['species']

@@ -4,8 +4,7 @@ import string
 from xml.dom.minidom import Element
 
 from aiida_quantumespresso.parsers import QEOutputParsingError
-from qe_tools.constants import ry_to_ev, hartree_to_ev, bohr_to_ang
-
+from qe_tools import CONSTANTS
 units_suffix = '_units'
 default_energy_units = 'eV'
 default_k_points_units = '1 / angstrom'
@@ -32,7 +31,7 @@ def read_xml_card(dom, cardname):
         return the_card
     except Exception as e:
         print(e)
-        raise QEOutputParsingError('Error parsing tag {}'.format(cardname))
+        raise QEOutputParsingError(f'Error parsing tag {cardname}')
 
 
 def parse_xml_child_integer(tagname, target_tags):
@@ -42,7 +41,7 @@ def parse_xml_child_integer(tagname, target_tags):
         b = a.childNodes[0]
         return int(b.data)
     except Exception:
-        raise QEOutputParsingError('Error parsing tag {} inside {}'.format(tagname, target_tags.tagName))
+        raise QEOutputParsingError(f'Error parsing tag {tagname} inside {target_tags.tagName}')
 
 
 def parse_xml_child_float(tagname, target_tags):
@@ -52,8 +51,7 @@ def parse_xml_child_float(tagname, target_tags):
         b = a.childNodes[0]
         return float(b.data)
     except Exception:
-        raise QEOutputParsingError('Error parsing tag {} inside {}'\
-                                   .format(tagname, target_tags.tagName ) )
+        raise QEOutputParsingError(f'Error parsing tag {tagname} inside {target_tags.tagName}')
 
 
 def parse_xml_child_bool(tagname, target_tags):
@@ -63,8 +61,7 @@ def parse_xml_child_bool(tagname, target_tags):
         b = a.childNodes[0]
         return str2bool(b.data)
     except Exception:
-        raise QEOutputParsingError('Error parsing tag {} inside {}'\
-                                   .format(tagname, target_tags.tagName) )
+        raise QEOutputParsingError(f'Error parsing tag {tagname} inside {target_tags.tagName}')
 
 
 def str2bool(string):
@@ -77,7 +74,7 @@ def str2bool(string):
         if string in true_items:
             return True
         else:
-            raise QEOutputParsingError('Error converting string {} to boolean value.'.format(string))
+            raise QEOutputParsingError(f'Error converting string {string} to boolean value.')
     except Exception:
         raise QEOutputParsingError('Error converting string to boolean.')
 
@@ -89,8 +86,7 @@ def parse_xml_child_str(tagname, target_tags):
         b = a.childNodes[0]
         return str(b.data).rstrip().replace('\n', '')
     except Exception:
-        raise QEOutputParsingError('Error parsing tag {} inside {}'\
-                                   .format(tagname, target_tags.tagName) )
+        raise QEOutputParsingError(f'Error parsing tag {tagname} inside {target_tags.tagName}')
 
 
 def parse_xml_child_attribute_str(tagname, attributename, target_tags):
@@ -101,7 +97,7 @@ def parse_xml_child_attribute_str(tagname, attributename, target_tags):
         return value.rstrip().replace('\n', '').lower()
     except Exception:
         raise QEOutputParsingError(
-            'Error parsing attribute {}, tag {} inside {}'.format(attributename, tagname, target_tags.tagName)
+            f'Error parsing attribute {attributename}, tag {tagname} inside {target_tags.tagName}'
         )
 
 
@@ -113,7 +109,7 @@ def parse_xml_child_attribute_int(tagname, attributename, target_tags):
         return value
     except Exception:
         raise QEOutputParsingError(
-            'Error parsing attribute {}, tag {} inside {}'.format(attributename, tagname, target_tags.tagName)
+            f'Error parsing attribute {attributename}, tag {tagname} inside {target_tags.tagName}'
         )
 
 
@@ -138,12 +134,10 @@ def xml_card_cell(parsed_data, dom):
     metric = parse_xml_child_attribute_str(tagname, attrname, target_tags)
     if metric not in ['bohr', 'angstrom']:
         raise QEOutputParsingError(
-            'Error parsing attribute {}, tag {} inside {}, units not found'.format(
-                attrname, tagname, target_tags.tagName
-            )
+            f'Error parsing attribute {attrname}, tag {tagname} inside {target_tags.tagName}, units not found'
         )
     if metric == 'bohr':
-        value *= bohr_to_ang
+        value *= CONSTANTS.bohr_to_ang
     parsed_data[tagname.replace('-', '_').lower()] = value
 
     tagname = 'CELL_DIMENSIONS'
@@ -155,7 +149,7 @@ def xml_card_cell(parsed_data, dom):
         value = [float(i) for i in c]
         parsed_data[tagname.replace('-', '_').lower()] = value
     except Exception:
-        raise QEOutputParsingError('Error parsing tag {} inside {}.'.format(tagname, target_tags.tagName))
+        raise QEOutputParsingError(f'Error parsing tag {tagname} inside {target_tags.tagName}.')
 
     tagname = 'DIRECT_LATTICE_VECTORS'
     lattice_vectors = []
@@ -170,7 +164,7 @@ def xml_card_cell(parsed_data, dom):
         metric = value
         if metric not in ['bohr', 'angstroms']:  # REMEMBER TO CHECK THE UNITS AT THE END OF THE FUNCTION
             raise QEOutputParsingError(
-                'Error parsing tag {} inside {}: units not supported: {}'.format(tagname, target_tags.tagName, metric)
+                f'Error parsing tag {tagname} inside {target_tags.tagName}: units not supported: {metric}'
             )
 
         lattice_vectors = []
@@ -181,15 +175,13 @@ def xml_card_cell(parsed_data, dom):
             d = c.data.replace('\n', '').split()
             value = [float(i) for i in d]
             if metric == 'bohr':
-                value = [bohr_to_ang * float(s) for s in value]
+                value = [CONSTANTS.bohr_to_ang * float(s) for s in value]
             lattice_vectors.append(value)
 
         volume = cell_volume(lattice_vectors[0], lattice_vectors[1], lattice_vectors[2])
 
     except Exception:
-        raise QEOutputParsingError(
-            'Error parsing tag {} inside {} inside {}.'.format(tagname, target_tags.tagName, cardname)
-        )
+        raise QEOutputParsingError(f'Error parsing tag {tagname} inside {target_tags.tagName} inside {cardname}.')
     # NOTE: lattice_vectors will be saved later together with card IONS.atom
 
     tagname = 'RECIPROCAL_LATTICE_VECTORS'
@@ -206,7 +198,7 @@ def xml_card_cell(parsed_data, dom):
         # NOTE: output is given in 2 pi / a [ang ^ -1]
         if metric not in ['2 pi / a']:
             raise QEOutputParsingError(
-                'Error parsing tag {} inside {}: units {} not supported'.format(tagname, target_tags.tagName, metric)
+                f'Error parsing tag {tagname} inside {target_tags.tagName}: units {metric} not supported'
             )
 
         # reciprocal_lattice_vectors
@@ -222,7 +214,7 @@ def xml_card_cell(parsed_data, dom):
         parsed_data['reciprocal_lattice_vectors'] = this_matrix
 
     except Exception:
-        raise QEOutputParsingError('Error parsing tag {} inside {}.'.format(tagname, target_tags.tagName))
+        raise QEOutputParsingError(f'Error parsing tag {tagname} inside {target_tags.tagName}.')
     return parsed_data, lattice_vectors, volume
 
 
@@ -263,7 +255,7 @@ def xml_card_ions(parsed_data, dom, lattice_vectors, volume):
         attrname = 'UNITS'
         parsed_data[tagname.lower()] = parse_xml_child_attribute_str(tagname, attrname, target_tags)
     except:
-        raise QEOutputParsingError('Error parsing tag SPECIE.# inside %s.' % (target_tags.tagName))
+        raise QEOutputParsingError(f'Error parsing tag SPECIE.# inside {target_tags.tagName}.')
 
 
 # TODO convert the units
@@ -301,11 +293,11 @@ def xml_card_ions(parsed_data, dom, lattice_vectors, volume):
             tau = [float(s) for s in b.rstrip().replace('\n', '').split()]
             metric = parsed_data['units_for_atomic_positions']
             if metric not in ['alat', 'bohr', 'angstrom']:  # REMEMBER TO CONVERT AT THE END
-                raise QEOutputParsingError('Error parsing tag %s inside %s' % (tagname, target_tags.tagName))
+                raise QEOutputParsingError(f'Error parsing tag {tagname} inside {target_tags.tagName}')
             if metric == 'alat':
                 tau = [parsed_data['lattice_parameter_xml'] * float(s) for s in tau]
             elif metric == 'bohr':
-                tau = [bohr_to_ang * float(s) for s in tau]
+                tau = [CONSTANTS.bohr_to_ang * float(s) for s in tau]
             atomlist.append([chem_symbol, tau])
             tagname2 = 'if_pos'
             b = a.getAttribute(tagname2)
@@ -321,7 +313,7 @@ def xml_card_ions(parsed_data, dom, lattice_vectors, volume):
         cell['tagslist'] = tagslist
         parsed_data['cell'] = cell
     except Exception:
-        raise QEOutputParsingError('Error parsing tag ATOM.# inside %s.' % (target_tags.tagName))
+        raise QEOutputParsingError(f'Error parsing tag ATOM.# inside {target_tags.tagName}.')
     # saving data together with cell parameters. Did so for better compatibility with ASE.
 
     # correct some units that have been converted in
@@ -365,12 +357,12 @@ def xml_card_planewaves(parsed_data, dom, calctype):
     units = parse_xml_child_attribute_str(tagname, attrname, target_tags).lower()
     if 'hartree' not in units:
         if 'rydberg' not in units:
-            raise QEOutputParsingError('Units {} are not supported by parser'.format(units))
+            raise QEOutputParsingError(f'Units {units} are not supported by parser')
     else:
         if 'hartree' in units:
-            conv_fac = hartree_to_ev
+            conv_fac = CONSTANTS.hartree_to_ev
         else:
-            conv_fac = ry_to_ev
+            conv_fac = CONSTANTS.ry_to_ev
 
         tagname = 'WFC_CUTOFF'
         parsed_data[tagname.lower()] = parse_xml_child_float(tagname, target_tags) * conv_fac
@@ -420,9 +412,9 @@ def xml_card_symmetries(parsed_data, dom):
     attrname = 'UNITS'
     metric = parse_xml_child_attribute_str(tagname, attrname, target_tags)
     if metric not in ['crystal']:
-        raise QEOutputParsingError('Error parsing attribute {},'.format(attrname) + \
-                                   ' tag {} inside '.format(tagname) + \
-                                   '{}, units unknown'.format(target_tags.tagName ) )
+        raise QEOutputParsingError(f'Error parsing attribute {attrname},' + \
+                                   f' tag {tagname} inside ' + \
+                                   f'{target_tags.tagName}, units unknown' )
     parsed_data['symmetries' + units_suffix] = metric
 
     # parse the symmetry matrices
@@ -497,7 +489,7 @@ def xml_card_exchangecorrelation(parsed_data, dom):
             parsed_data[tagname.lower()] = value
         except Exception:
             raise QEOutputParsingError('Error parsing tag '+\
-                                       '{} inside {}.'.format(tagname, target_tags.tagName) )
+                                       f'{tagname} inside {target_tags.tagName}.' )
 
         for tagname in ['HUBBARD_U', 'HUBBARD_ALPHA', 'HUBBARD_BETA', 'HUBBARD_J0']:
             try:
@@ -505,11 +497,11 @@ def xml_card_exchangecorrelation(parsed_data, dom):
                 a = [_ for _ in target_tags.childNodes if _.nodeName == tagname][0]
                 b = a.childNodes[0]
                 c = b.data.replace('\n', ' ').split()  # note the need of a white space!
-                value = [float(i) * ry_to_ev for i in c]
+                value = [float(i) * CONSTANTS.ry_to_ev for i in c]
                 parsed_data[tagname.lower()] = value
             except Exception:
                 raise QEOutputParsingError('Error parsing tag '+\
-                                           '{} inside {}.'.format(tagname, target_tags.tagName))
+                                           f'{tagname} inside {target_tags.tagName}.')
 
         tagname = 'LDA_PLUS_U_KIND'
         try:

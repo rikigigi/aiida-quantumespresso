@@ -71,7 +71,9 @@ class CpParser(Parser):
         output_stdout = retrieved.get_object_content(stdout_filename)
         output_xml = retrieved.get_object_content(xml_files[0])
         output_xml_counter = None if no_trajectory_output else retrieved.get_object_content(FILE_PRINT_COUNTER_BASENAME)
-        out_dict, _raw_successful = parse_cp_raw_output(output_stdout, output_xml, output_xml_counter)
+        out_dict, _raw_successful = parse_cp_raw_output(
+            output_stdout, output_xml, output_xml_counter, print_counter_xml
+        )
 
         if not no_trajectory_output:
             # parse the trajectory. Units in Angstrom, picoseconds and eV.

@@ -171,19 +171,18 @@ def parse_cp_counter_output(data):
     return parsed_data
 
 
-def parse_cp_raw_output(out_file, xml_file=None, xml_counter_file=None, print_counter_xml=True):
+def parse_cp_raw_output(stdout, output_xml=None, xml_counter_file=None, print_counter_xml=True):
 
     parser_info = get_parser_info(parser_info_template='aiida-quantumespresso parser cp.x v{}')
 
     # analyze the xml
-    if xml_file is not None:
-        xml_parsed = ElementTree.parse(xml_file)
+    if output_xml is not None:
+        xml_parsed = ElementTree.ElementTree(element=ElementTree.fromstring(output_xml))
         xml_file_version = get_xml_file_version(xml_parsed)
         if xml_file_version == QeXmlVersion.POST_6_2:
             xml_data, logs = parse_xml_post_6_2(xml_parsed, schema='cp')
         elif xml_file_version == QeXmlVersion.PRE_6_2:
-            xml_file.seek(0)
-            xml_data = parse_cp_xml_output(xml_file.read())
+            xml_data = parse_cp_xml_output(output_xml)
     else:
         parser_info['parser_warnings'].append('Skipping the parsing of the xml file.')
         xml_data = {}
@@ -191,10 +190,11 @@ def parse_cp_raw_output(out_file, xml_file=None, xml_counter_file=None, print_co
     # analyze the counter file, which keeps info on the steps
     if xml_counter_file is not None:
         if print_counter_xml:
-            xml_counter_data = parse_cp_xml_counter_output(xml_counter_file.read())
+            xml_counter_data = parse_cp_xml_counter_output(xml_counter_file)
         else:
-            xml_counter_data = parse_cp_counter_output(xml_counter_file.read())
-
+            xml_counter_data = parse_cp_counter_output(xml_counter_file)
+    else:
+        xml_counter_data = {}
     stdout = stdout.split('\n')
     # understand if the job ended smoothly
     job_successful = any('JOB DONE' in line for line in reversed(stdout))
