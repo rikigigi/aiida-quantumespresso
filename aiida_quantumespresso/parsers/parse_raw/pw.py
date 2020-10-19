@@ -756,8 +756,8 @@ def parse_stdout(stdout, input_parameters, parser_options=None, parsed_xml=None)
                 except Exception:
                     logs.warning.append('Error while parsing total force.')
 
-            elif ('entering subroutine stress ...' in line
-                  ) or ('Computing stress (Cartesian axis) and pressure' in line):
+            elif ('entering subroutine stress ...'
+                  in line) or ('Computing stress (Cartesian axis) and pressure' in line):
                 try:
                     stress = []
                     for k in range(10 + 5 * vdw_correction):
