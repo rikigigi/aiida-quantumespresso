@@ -8,7 +8,7 @@ import pytest
 def test_cp_autopilot(
     aiida_profile, fixture_sandbox, generate_calc_job, generate_inputs_cp, file_regression, autopilot
 ):
-    """Test a default `PwCalculation`."""
+    """Test a default `CpCalculation`."""
     entry_point_name = 'quantumespresso.cp'
 
     inputs = generate_inputs_cp(autopilot=autopilot)
