@@ -53,7 +53,7 @@ def parse_cp_xml_output(data):
 
     units = parse_xml_child_attribute_str(tagname, attrname, target_tags)
     if units not in ['pico-seconds']:
-        raise QEOutputParsingError('Units {} are not supported by parser'.format(units))
+        raise QEOutputParsingError(f'Units {units} are not supported by parser')
     parsed_data[tagname.lower()] = value
 
     tagname = 'TITLE'
@@ -91,7 +91,7 @@ def parse_cp_xml_output(data):
     metric = parse_xml_child_attribute_str(tagname, attrname, target_tags)
     if metric not in ['2 pi / a']:
         raise QEOutputParsingError(
-            'Error parsing attribute %s, tag %s inside %s, units unknown' % (attrname, tagname, target_tags.tagName)
+            f'Error parsing attribute {attrname}, tag {tagname} inside {target_tags.tagName}, units unknown'
         )
     parsed_data[tagname.replace('-', '_').lower()] = metric
 
@@ -102,7 +102,7 @@ def parse_cp_xml_output(data):
         value = [int(a.getAttribute('nk' + str(i + 1))) for i in range(3)]
         parsed_data[tagname.replace('-', '_').lower()] = value
     except:
-        raise QEOutputParsingError('Error parsing tag %s inside %s.' % (tagname, target_tags.tagName))
+        raise QEOutputParsingError(f'Error parsing tag {tagname} inside {target_tags.tagName}.')
 
     tagname = 'MONKHORST_PACK_OFFSET'
     try:
@@ -110,7 +110,7 @@ def parse_cp_xml_output(data):
         value = [int(a.getAttribute('k' + str(i + 1))) for i in range(3)]
         parsed_data[tagname.replace('-', '_').lower()] = value
     except:
-        raise QEOutputParsingError('Error parsing tag %s inside %s.' % (tagname, target_tags.tagName))
+        raise QEOutputParsingError(f'Error parsing tag {tagname} inside {target_tags.tagName}.')
 
     try:
         kpoints = []
@@ -130,7 +130,7 @@ def parse_cp_xml_output(data):
 
         parsed_data['k_point'] = kpoints
     except:
-        raise QEOutputParsingError('Error parsing tag K-POINT.# inside %s.' % (target_tags.tagName))
+        raise QEOutputParsingError(f'Error parsing tag K-POINT.# inside {target_tags.tagName}.')
 
     tagname = 'NORM-OF-Q'
     # TODO decide if save this parameter
@@ -390,7 +390,7 @@ def parse_cp_xml_output(data):
             except:
                 pass
         except Exception as e:
-            raise QEOutputParsingError('Error parsing CARD {}'.format(cardname))
+            raise QEOutputParsingError(f'Error parsing CARD {cardname}')
 
     # CARD BAND_STRUCTURE_INFO
 
