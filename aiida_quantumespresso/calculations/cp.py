@@ -177,7 +177,7 @@ class CpCalculation(BasePwCpInputGenerator):
                         autopilotinput += f"ON_STEP = {event['onstep']} : {event['what']} = {event['newvalue']}\n"
                 autopilotinput += 'ENDRULES\n'
             inputfile += autopilotinput
-        except KeyError:
+        except KeyError as key_error:
             raise exceptions.InputValidationError(
                     f'''AUTOPILOT input: you must specify a list of dictionaries like the following:
                      [
@@ -186,5 +186,5 @@ class CpCalculation(BasePwCpInputGenerator):
                      ]
                      You specified {autopilot}
                      '''
-                    )
+                    ) from key_error
         return inputfile
