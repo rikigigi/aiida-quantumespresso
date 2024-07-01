@@ -69,11 +69,16 @@ class NebParser(BaseParser):
         image_data = {}
         positions = []
         cells = []
+        failed_images = []
 
         for i in range(num_images):
             # check if any of the known XML output file names are present, and parse the first that we find
             relative_output_folder = os.path.join(f'{prefix}_{i + 1}', f'{prefix}.save')
-            retrieved_files = self.retrieved.base.repository.list_object_names(relative_output_folder)
+            try:
+                retrieved_files = self.retrieved.base.repository.list_object_names(relative_output_folder)
+            except FileNotFoundError:
+                failed_images.append((i, 'output files not found'))
+                break
 
             for xml_filename in PwCalculation.xml_filenames:
                 if xml_filename in retrieved_files:
@@ -110,7 +115,9 @@ class NebParser(BaseParser):
                     pw_out_text, pw_input_dict, parser_options, parsed_data_xml
                 )
             except Exception as exc:
-                return self.exit(self.exit_codes.ERROR_UNEXPECTED_PARSER_EXCEPTION.format(exception=exc))
+                failed_images.append((i, f'unexpected parser exception'))
+                break
+                #return self.exit(self.exit_codes.ERROR_UNEXPECTED_PARSER_EXCEPTION.format(exception=exc))
 
             parsed_structure = parsed_data_stdout.pop('structure', {})
             parsed_trajectory = parsed_data_stdout.pop('trajectory', {})
@@ -150,12 +157,12 @@ class NebParser(BaseParser):
         # Symbols can be obtained simply from the last image
         symbols = [str(site.kind_name) for site in structure_data.sites]
 
-        output_params = Dict(dict(list(parsed_data.items()) + list(image_data.items())))
+        output_params = Dict(dict([('failed_images', failed_images )]+list(parsed_data.items()) + list(image_data.items())))
         self.out('output_parameters', output_params)
 
         trajectory = TrajectoryData()
         trajectory.set_trajectory(
-            stepids=numpy.arange(1, num_images + 1),
+            stepids=numpy.arange(1, num_images + 1 - len(failed_images)),
             cells=numpy.array(cells),
             symbols=symbols,
             positions=numpy.array(positions),
