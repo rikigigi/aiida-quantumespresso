@@ -66,6 +66,9 @@ class NebParser(BaseParser):
         except:
             return self.exit(self.exit_codes.ERROR_OUTPUT_STDOUT_READ)
 
+        if len(neb_out_dict['errors']) > 0:
+            return self.exit(self.exit_codes[neb_out_dict['errors'][0]])
+
         # If iteration_data is empty, it means that the calculation was interrupted before completing
         # the first NEB minimization step, so we cannot retrieve any partial trajectory.
         if len(iteration_data) == 0:

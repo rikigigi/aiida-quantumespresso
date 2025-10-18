@@ -9,6 +9,7 @@ from aiida.common.lang import classproperty
 
 from aiida_quantumespresso.calculations import _pop_parser_options, _uppercase_dict
 from aiida_quantumespresso.calculations.pw import PwCalculation
+from aiida_quantumespresso.calculations import BasePwCpInputGenerator
 from aiida_quantumespresso.utils.convert import convert_input_to_namelist_entry
 from aiida_quantumespresso.utils.validation.parameters import validate_parameters
 
@@ -28,6 +29,8 @@ class NebCalculation(CalcJob):
     _DEFAULT_OUTPUT_FILE = 'aiida.out'
     _PSEUDO_SUBFOLDER = PwCalculation._PSEUDO_SUBFOLDER  # noqa: SLF001
     _OUTPUT_SUBFOLDER = PwCalculation._OUTPUT_SUBFOLDER  # noqa: SLF001
+    _ENABLED_PARALLELIZATION_FLAGS = ('npool', 'nband', 'ntg', 'ndiag', 'nimage')
+    _PARALLELIZATION_FLAG_ALIASES = BasePwCpInputGenerator._PARALLELIZATION_FLAG_ALIASES  # noqa: SLF001
 
     # Keywords that cannot be set (for the PW input)
     _blocked_keywords = []
@@ -85,6 +88,19 @@ class NebCalculation(CalcJob):
             valid_type=orm.RemoteData,
             required=False,
             help='An optional working directory of a previously completed calculation to restart from.',
+        )
+        spec.input(
+            'parallelization',
+            valid_type=orm.Dict,
+            required=False,
+            validator=lambda value, _: BasePwCpInputGenerator.validate_parallelization.__func__(cls, value, _),
+            help=(
+                'Parallelization options. The following flags are allowed:\n'
+                + '\n'.join(
+                    f'{flag_name:<7}: {BasePwCpInputGenerator._PARALLELIZATION_FLAGS[flag_name]}'  # noqa: SLF001
+                    for flag_name in cls._ENABLED_PARALLELIZATION_FLAGS
+                )
+            ),
         )
         # We reuse some inputs from PwCalculation to construct the PW-specific parts of the input files
         spec.expose_inputs(PwCalculation, namespace='pw', include=('parameters', 'pseudos', 'kpoints', 'vdw_table'))
@@ -149,6 +165,26 @@ class NebCalculation(CalcJob):
         spec.exit_code(466, 'ERROR_QR_FAILED', message='The `[Q, R] = qr(X, 0)` failed in the PPCG diagonalization.')
         spec.exit_code(467, 'ERROR_EIGENVECTOR_CONVERGENCE', message='The eigenvector failed to converge.')
         spec.exit_code(468, 'ERROR_BROYDEN_FACTORIZATION', message='The factorization in the Broyden routine failed.')
+        spec.exit_code(
+            481,
+            'ERROR_NPOOLS_TOO_HIGH',
+            message='The k-point parallelization "npools" is too high, given the number of available processes.',
+        )
+        spec.exit_code(
+            482,
+            'ERROR_NIMAGE_HIGHER_THAN_NPROC',
+            message='The number of images "nimage" is higher than the number of available processes.',
+        )
+        spec.exit_code(
+            483,
+            'ERROR_NIMAGE_HIGHER_THAN_IMAGES',
+            message='The number of images "nimage" is higher than the number of images in the NEB path.',
+        )
+        spec.exit_code(
+            484,
+            'ERROR_NIMAGE_NOT_DIVISOR_OF_NPROC',
+            message='The number of images "nimage" is not a divisor of the total number of processes.',
+        )
 
         spec.exit_code(
             502,
@@ -201,6 +237,14 @@ class NebCalculation(CalcJob):
                     f'Pseudos: {formatted_pseudos};\nKinds: {formatted_kinds}'
                 )
 
+        # Validate the `nimage` parallelization against the number of images
+        num_of_images = int(value['parameters']['PATH'].get('num_of_images', 3))
+        ni = int(value.get('parallelization', {}).get('nimage', 1))
+        first_last_opt = bool(value['parameters']['PATH'].get('first_last_opt', False))
+
+        max_ni = num_of_images if first_last_opt else num_of_images - 2
+        if ni > max_ni:
+            return f'The specified nimage {ni} parallelization is higher than the number of images {max_ni}.'
         cls.inputs = AttributeDict(value)
 
     @classmethod
@@ -400,7 +444,10 @@ class NebCalculation(CalcJob):
         codeinfo = CodeInfo()
 
         calcinfo.uuid = self.uuid
-        cmdline_params = settings_dict.pop('CMDLINE', [])
+
+        cmdline_params = BasePwCpInputGenerator._add_parallelization_flags_to_cmdline_params(
+            self, cmdline_params=settings_dict.pop('CMDLINE', [])
+        )
         calcinfo.local_copy_list = local_copy_list
         calcinfo.remote_copy_list = remote_copy_list
         calcinfo.remote_symlink_list = remote_symlink_list

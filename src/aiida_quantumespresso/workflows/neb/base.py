@@ -79,6 +79,11 @@ class NebBaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         spec.exit_code(
             310, 'ERROR_KNOWN_UNRECOVERABLE_FAILURE', message='The calculation failed with a known unrecoverable error.'
         )
+        spec.exit_code(
+            320,
+            'ERROR_PARALLELIZATION_SETTINGS',
+            message='The calculation failed due to wrong parallelization settings.',
+        )
 
     @classmethod
     def get_protocol_filepath(cls):
@@ -337,3 +342,21 @@ class NebBaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         action += 'An increase of the walltime is probably needed. Aborting...'
         self.report_error_handled(calculation, action)
         return ProcessHandlerReport(True, self.exit_codes.ERROR_KNOWN_UNRECOVERABLE_FAILURE)
+    
+    
+    @process_handler(
+    priority=390, exit_codes=[
+        NebCalculation.exit_codes.ERROR_NPOOLS_TOO_HIGH,
+        NebCalculation.exit_codes.ERROR_NIMAGE_HIGHER_THAN_NPROC,
+        NebCalculation.exit_codes.ERROR_NIMAGE_HIGHER_THAN_IMAGES,
+        NebCalculation.exit_codes.ERROR_NIMAGE_NOT_DIVISOR_OF_NPROC
+    ]
+    )
+    def handle_neb_interrupted_for_parallelization(self, calculation):
+        """Handle parallelization errors.
+
+        In this case the calculation was interrupted due to wrong parallelization settings.
+        """
+        action = 'Calculation was interrupted due to wrong parallelization settings.'
+        self.report_error_handled(calculation, action)
+        return ProcessHandlerReport(True, self.exit_codes.ERROR_PARALLELIZATION_SETTINGS)
