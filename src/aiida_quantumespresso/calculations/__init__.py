@@ -190,8 +190,30 @@ class BasePwCpInputGenerator(CalcJob):
         )
 
     @classmethod
-    def validate_inputs(cls, value, port_namespace):
+    def validate_inputs(cls, value, port_namespace):  # pylint: disable=too-many-return-statements
         """Validate the entire inputs namespace."""
+
+        params = value['parameters'].get_dict()
+        system_params = params.get('SYSTEM', {})
+        # Validate spin-polarization parameters
+        if system_params.get('nspin', 1) == 2:
+            if all(k not in system_params for k in ('starting_magnetization', 'tot_magnetization')):
+                return (
+                    "For spin-polarized calculations (nspin != 1), 'starting_magnetization' or "
+                    "'tot_magnetization' parameter must be specified in 'SYSTEM' namelist."
+                )
+            if system_params.get('occupations', 'smearing') == 'fixed':
+                if 'tot_magnetization' not in system_params:
+                    return (
+                        "For spin-polarized calculations with 'fixed' occupations, "
+                        "'tot_magnetization' parameter must be specified in 'SYSTEM' namelist."
+                    )
+            if system_params.get('noncolin', False):
+                return "'noncolin' and 'nspin' parameters are in conflict"
+        if 'tot_magnetization' in system_params:
+            if 'nspin' not in system_params or system_params.get('nspin', 1) != 2:
+                return ("'tot_magnetization' parameter specified but 'nspin' is not set to 2"
+                        " in 'SYSTEM' namelist.")
 
         # Wrapping processes may choose to exclude certain input ports in which case we can't validate. If the ports
         # have been excluded, and so are no longer part of the ``port_namespace``, skip the validation.
