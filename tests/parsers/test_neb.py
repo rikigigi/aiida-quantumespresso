@@ -271,3 +271,26 @@ def test_failed_parallelization(
     assert calcfunction.is_finished, calcfunction.exception
     assert calcfunction.is_failed, calcfunction.exit_status
     assert calcfunction.exit_status == node.process_class.exit_codes.get(exception).status
+    
+def test_fortran_format_in_path_length(
+    fixture_localhost,
+    generate_calc_job_node,
+    generate_parser,
+    generate_inputs,
+):
+    """Test the parsing of a calculation that used a wrong Fortran format for path length, and have ******* in the output instead of a number."""
+    name = 'fortran_format_in_path_length'
+    entry_point_calc_job = 'quantumespresso.neb'
+    entry_point_parser = 'quantumespresso.neb'
+
+    node = generate_calc_job_node(entry_point_calc_job, fixture_localhost, name, generate_inputs())
+    # parser = generate_parser(entry_point_parser)(node)
+    # #import pdb; pdb.set_trace()
+    # data=parser.parse()
+    parser = generate_parser(entry_point_parser)
+    data, calcfunction = parser.parse_from_node(node, store_provenance=False)
+    
+    print('Parser data:', data)
+    print([log.message for log in orm.Log.collection.get_logs_for(node)])
+    print(f'Calcfunction exit status: {calcfunction.exit_status}, exception: {calcfunction.exception}')
+    assert calcfunction.exit_status != node.process_class.exit_codes.ERROR_OUTPUT_STDOUT_READ.status

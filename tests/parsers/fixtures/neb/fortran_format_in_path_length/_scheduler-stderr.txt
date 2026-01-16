@@ -1,0 +1,5 @@
+Loading quantum-espresso/7.4.1--hpcx-mpi--2.19--nvhpc--24.5-openblas
+  Loading requirement: glibc/2.28--gcc--12.2.0-gi6mmti hpcx-mpi/2.19
+    fftw/3.3.10--hpcx-mpi--2.19--nvhpc--24.5 libxc/7.0.0--nvhpc--24.5
+    openblas/0.3.26--nvhpc--24.5
+slurmstepd: error: *** JOB 32371844 ON lrdn0259 CANCELLED AT 2026-01-15T16:02:32 DUE TO TIME LIMIT ***

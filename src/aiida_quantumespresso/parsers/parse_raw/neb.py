@@ -83,8 +83,12 @@ def parse_neb_text_output(data):
         detect_important_message(parsed_data, line)
 
         if 'initial path length' in line:
-            initial_path_length = float(line.split('=')[1].split('bohr')[0])
-            parsed_data['initial_path_length'] = initial_path_length * CONSTANTS.bohr_to_ang
+            try:
+                initial_path_length = float(line.split('=')[1].split('bohr')[0])
+                parsed_data['initial_path_length'] = initial_path_length * CONSTANTS.bohr_to_ang
+            except ValueError:
+                parsed_data['warnings'].append(f'Could not parse initial path length. ({line})')
+                parsed_data['initial_path_length'] = None
         elif 'initial inter-image distance' in line:
             initial_image_dist = float(line.split('=')[1].split('bohr')[0])
             parsed_data['initial_image_dist'] = initial_image_dist * CONSTANTS.bohr_to_ang

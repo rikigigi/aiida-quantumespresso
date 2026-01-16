@@ -54,7 +54,6 @@ class NebParser(BaseParser):
 
         # load the pw input parameters dictionary
         pw_input_dict = self.node.inputs.pw.parameters.get_dict()
-
         stdout, parsed_data, logs = self.parse_stdout_from_retrieved(logs)
 
         base_exit_code = self.check_base_errors(logs)
@@ -63,9 +62,9 @@ class NebParser(BaseParser):
 
         try:
             neb_out_dict, iteration_data = parse_raw_output_neb(stdout)
-        except:
+        except Exception as exc:
+            logs.error.append(str(exc))
             return self.exit(self.exit_codes.ERROR_OUTPUT_STDOUT_READ)
-
         if len(neb_out_dict['errors']) > 0:
             return self.exit(self.exit_codes[neb_out_dict['errors'][0]])
 
@@ -73,10 +72,10 @@ class NebParser(BaseParser):
 
         # If num_images is empty, it means that the calculation was interrupted before completing
         # the first NEB minimization step, so we cannot retrieve any partial trajectory.
-        try:
-            num_images = parsed_data['num_of_images']
-        except:
+        if 'num_of_images' not in parsed_data:
             return self.exit(self.exit_codes.ERROR_NEB_INTERRUPTED_WITHOUT_PARTIAL_TRAJECTORY)
+        else:
+            num_images = parsed_data['num_of_images']
         
         # Now parse the information from the individual pw calculations for the different images
         image_data = {}
@@ -96,6 +95,7 @@ class NebParser(BaseParser):
                 # Output file can contain the output of many scf iterations, analyse only the last one
                 pw_out_text = '     coordinates at iteration' + pw_out_text.split('coordinates at iteration')[-1]
             except OSError:
+                logs.error.append(f'PW output file for image {i + 1} is missing. {pw_out_file}')
                 logs_stdout = self.exit_codes.ERROR_OUTPUT_STDOUT_READ
 
             try:
