@@ -34,6 +34,7 @@ parameters:
   - true
   - 13
   ds_au: 2.0
+  errors: []
   first_last_opt: false
   forward_activation_energy: 0.0
   image_dist: 1.4790502980090499
