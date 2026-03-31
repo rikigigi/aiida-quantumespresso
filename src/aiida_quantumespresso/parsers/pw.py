@@ -269,6 +269,10 @@ class PwParser(BaseParser):
         """Analyze problems that are specific to `dynamics` type calculations: i.e. `md` and `vc-md`."""
         if self.get_calculation_type() not in ['md', 'vc-md']:
             return
+        electronic_convergence_reached = 'ERROR_ELECTRONIC_CONVERGENCE_NOT_REACHED' not in logs.error
+        # The electronic self-consistency cycle failed
+        if not electronic_convergence_reached:
+            return self.exit_codes.ERROR_IONIC_CYCLE_ELECTRONIC_CONVERGENCE_NOT_REACHED
 
     def validate_ionic(self, trajectory, parameters, logs):
         """Analyze problems that are specific to `ionic` type calculations: i.e. `relax` and `vc-relax`."""
