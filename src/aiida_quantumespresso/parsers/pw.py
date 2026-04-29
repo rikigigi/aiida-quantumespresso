@@ -521,6 +521,7 @@ class PwParser(BaseParser):
             cells=cells,
             symbols=symbols,
             positions=positions,
+            pbc=structure.pbc,
         )
 
         for key, value in parsed_trajectory.items():
