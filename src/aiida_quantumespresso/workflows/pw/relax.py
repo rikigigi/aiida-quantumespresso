@@ -129,7 +129,7 @@ class PwRelaxWorkChain(ProtocolMixin, WorkChain):
             # Quantum ESPRESSO currently only supports optimization of the volume for simple cubic systems. It requires
             # to set `ibrav=1` or the code will except.
             if relax_type in (RelaxType.VOLUME, RelaxType.POSITIONS_VOLUME):
-                raise ValueError(f'relax type `{relax_type} is not yet supported.')
+                raise ValueError(f'relax type `{relax_type}` is not yet supported.')
 
             if relax_type in (RelaxType.VOLUME, RelaxType.SHAPE, RelaxType.CELL):
                 namespace.pw.settings = orm.Dict(
@@ -145,15 +145,14 @@ class PwRelaxWorkChain(ProtocolMixin, WorkChain):
                 namespace.pw.parameters.base.attributes.delete('CELL')
             else:
                 namespace.pw.parameters['CONTROL']['calculation'] = 'vc-relax'
-
+            
             if relax_type in (RelaxType.VOLUME, RelaxType.POSITIONS_VOLUME):
-                namespace.pw.parameters['CELL']['cell_dofree'] = 'volume'
+                namespace.pw.parameters['CELL'].setdefault('cell_dofree', 'volume')
 
             if relax_type in (RelaxType.SHAPE, RelaxType.POSITIONS_SHAPE):
-                namespace.pw.parameters['CELL']['cell_dofree'] = 'shape'
+                namespace.pw.parameters['CELL'].setdefault('cell_dofree', 'shape')
 
             if relax_type in (RelaxType.CELL, RelaxType.POSITIONS_CELL):
-
                 pbc_cell_dofree_map = {
                     (True, True, True): 'all',
                     (True, False, False): 'x',
@@ -162,7 +161,7 @@ class PwRelaxWorkChain(ProtocolMixin, WorkChain):
                     (True, True, False): '2Dxy',
                 }
                 if structure.pbc in pbc_cell_dofree_map:
-                    namespace.pw.parameters['CELL']['cell_dofree'] = pbc_cell_dofree_map[structure.pbc]
+                    namespace.pw.parameters['CELL'].setdefault('cell_dofree', pbc_cell_dofree_map[structure.pbc])
                 else:
                     raise ValueError(
                         f'Structures with periodic boundary conditions `{structure.pbc}` are not supported.'
