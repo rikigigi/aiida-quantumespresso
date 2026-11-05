@@ -327,9 +327,10 @@ class NebBaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         return ProcessHandlerReport(True)
 
     @process_handler(
-        priority=400, exit_codes=[
+        priority=400,
+        exit_codes=[
             NebCalculation.exit_codes.ERROR_NEB_INTERRUPTED_WITHOUT_PARTIAL_TRAJECTORY,
-        ]
+        ],
     )
     def handle_neb_interrupted_without_partial_trajectory(self, calculation):
         """Handle `ERROR_NEB_INTERRUPTED_WITHOUT_PARTIAL_TRAJECTORY` error.
@@ -342,15 +343,15 @@ class NebBaseWorkChain(ProtocolMixin, BaseRestartWorkChain):
         action += 'An increase of the walltime is probably needed. Aborting...'
         self.report_error_handled(calculation, action)
         return ProcessHandlerReport(True, self.exit_codes.ERROR_KNOWN_UNRECOVERABLE_FAILURE)
-    
-    
+
     @process_handler(
-    priority=390, exit_codes=[
-        NebCalculation.exit_codes.ERROR_NPOOLS_TOO_HIGH,
-        NebCalculation.exit_codes.ERROR_NIMAGE_HIGHER_THAN_NPROC,
-        NebCalculation.exit_codes.ERROR_NIMAGE_HIGHER_THAN_IMAGES,
-        NebCalculation.exit_codes.ERROR_NIMAGE_NOT_DIVISOR_OF_NPROC
-    ]
+        priority=390,
+        exit_codes=[
+            NebCalculation.exit_codes.ERROR_NPOOLS_TOO_HIGH,
+            NebCalculation.exit_codes.ERROR_NIMAGE_HIGHER_THAN_NPROC,
+            NebCalculation.exit_codes.ERROR_NIMAGE_HIGHER_THAN_IMAGES,
+            NebCalculation.exit_codes.ERROR_NIMAGE_NOT_DIVISOR_OF_NPROC,
+        ],
     )
     def handle_neb_interrupted_for_parallelization(self, calculation):
         """Handle parallelization errors.

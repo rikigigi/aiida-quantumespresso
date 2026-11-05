@@ -7,12 +7,15 @@ decision doesn't have much structure encoded, [the values are simple ]
 
 from qe_tools import CONSTANTS
 
+
 def detect_important_message(logs, line):
     message_map = {
-        'error': {'invalid number of pools, out of range': 'ERROR_NPOOLS_TOO_HIGH',
-                  'invalid number of images, out of range': 'ERROR_NIMAGE_HIGHER_THAN_NPROC',
-                  'n. of images must be divisor of nproc': 'ERROR_NIMAGE_NOT_DIVISOR_OF_NPROC',
-                  'nimage is larger than the available number of images': 'ERROR_NIMAGE_HIGHER_THAN_IMAGES'},
+        'error': {
+            'invalid number of pools, out of range': 'ERROR_NPOOLS_TOO_HIGH',
+            'invalid number of images, out of range': 'ERROR_NIMAGE_HIGHER_THAN_NPROC',
+            'n. of images must be divisor of nproc': 'ERROR_NIMAGE_NOT_DIVISOR_OF_NPROC',
+            'nimage is larger than the available number of images': 'ERROR_NIMAGE_HIGHER_THAN_IMAGES',
+        },
     }
 
     for marker, message in message_map['error'].items():
@@ -26,7 +29,8 @@ def detect_important_message(logs, line):
                 if message is None:
                     message = line
                 logs['errors'].append(message)
-    
+
+
 def parse_raw_output_neb(stdout):
     """Parses the output of a neb calculation Receives in input the paths to the output file.
 

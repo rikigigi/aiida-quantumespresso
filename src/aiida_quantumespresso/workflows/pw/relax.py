@@ -168,7 +168,7 @@ class PwRelaxWorkChain(ProtocolMixin, WorkChain):
                 namespace.pw.parameters.base.attributes.delete('CELL')
             else:
                 namespace.pw.parameters['CONTROL']['calculation'] = 'vc-relax'
-            
+
             if relax_type in (RelaxType.VOLUME, RelaxType.POSITIONS_VOLUME):
                 namespace.pw.parameters['CELL'].setdefault('cell_dofree', 'volume')
 

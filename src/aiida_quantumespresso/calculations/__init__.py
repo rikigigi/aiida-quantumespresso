@@ -193,6 +193,17 @@ class BasePwCpInputGenerator(CalcJob):
     def validate_inputs(cls, value, port_namespace):  # pylint: disable=too-many-return-statements
         """Validate the entire inputs namespace."""
 
+        # Wrapping processes may choose to exclude certain input ports in which case we can't validate. If the ports
+        # have been excluded, and so are no longer part of the ``port_namespace``, skip the validation.
+        if any(key not in port_namespace for key in ('pseudos', 'structure', 'parameters')):
+            return
+
+        # At this point, all ports are part of the namespace, and all are required so return an error message if any
+        # of them is missing.
+        for key in ('pseudos', 'structure', 'parameters'):
+            if key not in value:
+                return f'required value was not provided for the `{key}` namespace.'
+
         params = value['parameters'].get_dict()
         system_params = params.get('SYSTEM', {})
         # Validate spin-polarization parameters
@@ -212,19 +223,7 @@ class BasePwCpInputGenerator(CalcJob):
                 return "'noncolin' and 'nspin' parameters are in conflict"
         if 'tot_magnetization' in system_params:
             if 'nspin' not in system_params or system_params.get('nspin', 1) != 2:
-                return ("'tot_magnetization' parameter specified but 'nspin' is not set to 2"
-                        " in 'SYSTEM' namelist.")
-
-        # Wrapping processes may choose to exclude certain input ports in which case we can't validate. If the ports
-        # have been excluded, and so are no longer part of the ``port_namespace``, skip the validation.
-        if any(key not in port_namespace for key in ('pseudos', 'structure')):
-            return
-
-        # At this point, both ports are part of the namespace, and both are required so return an error message if any
-        # of the two is missing.
-        for key in ('pseudos', 'structure'):
-            if key not in value:
-                return f'required value was not provided for the `{key}` namespace.'
+                return "'tot_magnetization' parameter specified but 'nspin' is not set to 2 in 'SYSTEM' namelist."
 
         structure_kinds = set(value['structure'].get_kind_names())
         pseudo_kinds = set(value['pseudos'].keys())

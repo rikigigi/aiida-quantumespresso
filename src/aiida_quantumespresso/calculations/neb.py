@@ -4,7 +4,7 @@ import copy
 import os
 import numpy as np
 from aiida import orm
-from aiida.common import AttributeDict, CalcInfo, CodeInfo, InputValidationError
+from aiida.common import CalcInfo, CodeInfo, InputValidationError
 from aiida.common.lang import classproperty
 
 from aiida_quantumespresso.calculations import _pop_parser_options, _uppercase_dict
@@ -275,7 +275,7 @@ class NebCalculation(CalcJob):
         # Create an empty dictionary for the compulsory namelist 'PATH' if not present
         if 'PATH' not in input_params:
             input_params['PATH'] = {}
-            
+
         number_of_images = input_params['PATH']['num_of_images']
         # In case of climbing image, we need the corresponding card
         ci_scheme = input_params['PATH'].get('ci_scheme', 'no-ci').lower()
@@ -338,7 +338,9 @@ class NebCalculation(CalcJob):
         else:
             settings_dict = {}
 
-        structure_list = [self.inputs.images.get_step_structure(i) for i in range(len(self.inputs.images.get_stepids()))]
+        structure_list = [
+            self.inputs.images.get_step_structure(i) for i in range(len(self.inputs.images.get_stepids()))
+        ]
 
         # Create the subfolder that will contain the pseudopotentials
         folder.get_subfolder(self._PSEUDO_SUBFOLDER, create=True)

@@ -244,13 +244,15 @@ def test_failed_first_step_interrupted(
     assert calcfunction.is_failed, calcfunction.exit_status
     assert calcfunction.exit_status == exit_status
 
+
 @pytest.mark.parametrize(
-    'filename, exception', [
+    'filename, exception',
+    [
         ('failed_npools_too_high', 'ERROR_NPOOLS_TOO_HIGH'),
         ('failed_nimage_higher_than_nproc', 'ERROR_NIMAGE_HIGHER_THAN_NPROC'),
         ('failed_nimage_higher_than_images', 'ERROR_NIMAGE_HIGHER_THAN_IMAGES'),
-        ('failed_nimage_not_divisor_of_nproc', 'ERROR_NIMAGE_NOT_DIVISOR_OF_NPROC')
-    ]
+        ('failed_nimage_not_divisor_of_nproc', 'ERROR_NIMAGE_NOT_DIVISOR_OF_NPROC'),
+    ],
 )
 def test_failed_parallelization(
     fixture_localhost, generate_calc_job_node, generate_parser, generate_inputs, filename, exception
@@ -271,7 +273,8 @@ def test_failed_parallelization(
     assert calcfunction.is_finished, calcfunction.exception
     assert calcfunction.is_failed, calcfunction.exit_status
     assert calcfunction.exit_status == node.process_class.exit_codes.get(exception).status
-    
+
+
 def test_fortran_format_in_path_length(
     fixture_localhost,
     generate_calc_job_node,
@@ -289,7 +292,7 @@ def test_fortran_format_in_path_length(
     # data=parser.parse()
     parser = generate_parser(entry_point_parser)
     data, calcfunction = parser.parse_from_node(node, store_provenance=False)
-    
+
     print('Parser data:', data)
     print([log.message for log in orm.Log.collection.get_logs_for(node)])
     print(f'Calcfunction exit status: {calcfunction.exit_status}, exception: {calcfunction.exception}')

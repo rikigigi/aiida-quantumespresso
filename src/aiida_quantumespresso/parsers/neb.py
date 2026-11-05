@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 from aiida.common import NotExistent
+from aiida.engine import ExitCode
 from aiida.orm import ArrayData, Dict, TrajectoryData
 
 from aiida_quantumespresso.calculations.neb import NebCalculation
@@ -76,7 +77,7 @@ class NebParser(BaseParser):
             return self.exit(self.exit_codes.ERROR_NEB_INTERRUPTED_WITHOUT_PARTIAL_TRAJECTORY)
         else:
             num_images = parsed_data['num_of_images']
-        
+
         # Now parse the information from the individual pw calculations for the different images
         image_data = {}
         positions = []
